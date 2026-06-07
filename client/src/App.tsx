@@ -1,0 +1,68 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAppSelector } from './hooks/useAppSelector'
+import MainLayout from './components/layout/MainLayout'
+import AdminLayout from './components/layout/AdminLayout'
+
+// Public pages
+import HomePage from './pages/HomePage'
+import CategoryPage from './pages/CategoryPage'
+import ProductDetailPage from './pages/ProductDetailPage'
+import CartPage from './pages/CartPage'
+import CheckoutPage from './pages/CheckoutPage'
+import OrderSuccessPage from './pages/OrderSuccessPage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import ProfilePage from './pages/ProfilePage'
+import OrdersPage from './pages/OrdersPage'
+import OrderDetailPage from './pages/OrderDetailPage'
+import SearchPage from './pages/SearchPage'
+import NotFoundPage from './pages/NotFoundPage'
+
+// Admin pages
+import DashboardPage from './pages/admin/DashboardPage'
+import AdminProductsPage from './pages/admin/AdminProductsPage'
+import AdminOrdersPage from './pages/admin/AdminOrdersPage'
+import AdminCustomersPage from './pages/admin/AdminCustomersPage'
+import AdminCouponsPage from './pages/admin/AdminCouponsPage'
+import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
+
+function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
+  const { isAuthenticated, roles } = useAppSelector((s) => s.auth)
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (adminOnly && !roles.includes('Admin')) return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
+export default function App() {
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/danh-muc/:slug" element={<CategoryPage />} />
+        <Route path="/san-pham/:slug" element={<ProductDetailPage />} />
+        <Route path="/tim-kiem" element={<SearchPage />} />
+        <Route path="/gio-hang" element={<CartPage />} />
+        <Route path="/dang-nhap" element={<LoginPage />} />
+        <Route path="/dang-ky" element={<RegisterPage />} />
+        <Route path="/thanh-toan" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+        <Route path="/dat-hang-thanh-cong/:id" element={<ProtectedRoute><OrderSuccessPage /></ProtectedRoute>} />
+        <Route path="/tai-khoan" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/don-hang" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+        <Route path="/don-hang/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+      </Route>
+
+      {/* Admin routes */}
+      <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
+        <Route index element={<DashboardPage />} />
+        <Route path="san-pham" element={<AdminProductsPage />} />
+        <Route path="don-hang" element={<AdminOrdersPage />} />
+        <Route path="khach-hang" element={<AdminCustomersPage />} />
+        <Route path="khuyen-mai" element={<AdminCouponsPage />} />
+        <Route path="danh-muc" element={<AdminCategoriesPage />} />
+      </Route>
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  )
+}

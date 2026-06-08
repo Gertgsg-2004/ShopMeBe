@@ -19,7 +19,6 @@
     <ProjectReference Include="..\ShopMeBe.Core\ShopMeBe.Core.csproj" />
     <ProjectReference Include="..\ShopMeBe.Infrastructure\ShopMeBe.Infrastructure.csproj" />
   </ItemGroup>
-
   <Target Name="StartReactDev" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
     <Exec Command="start cmd /k &quot;cd /d $(SpaRoot) &amp;&amp; npm run dev&quot;" />
   </Target>

@@ -44,7 +44,7 @@ export default function AdminLayout() {
           {sidebarOpen && (
             <Link to="/" className="flex items-center gap-2">
               <div className="w-7 h-7 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">M</div>
-              <span className="font-bold text-gray-800 text-sm">ShopMeBe Admin</span>
+              <span className="font-bold text-gray-800 text-sm">Ánh Tuyết Admin</span>
             </Link>
           )}
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors ml-auto">

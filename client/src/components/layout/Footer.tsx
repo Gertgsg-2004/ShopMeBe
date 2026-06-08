@@ -10,7 +10,7 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-9 h-9 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">M</div>
-              <span className="text-xl font-bold text-white">ShopMeBe</span>
+              <span className="text-xl font-bold text-white">Shop Mẹ & Bé Ánh Tuyết</span>
             </div>
             <p className="text-sm leading-relaxed text-gray-400 mb-4">
               Cửa hàng mẹ và bé uy tín hàng đầu. Chuyên cung cấp đồ dùng cho bà bầu, trẻ sơ sinh và đồ chơi trẻ em chất lượng cao.
@@ -80,7 +80,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-6 text-center text-xs text-gray-500">
-          <p>© 2026 ShopMeBeAnhTuyet. code by Gertgsg_2004.</p>
+          <p>© 2026 Shop Mẹ & Bé Ánh Tuyết. Thiết kế bởi Gertgsg_2004.</p>
         </div>
       </div>
     </footer>

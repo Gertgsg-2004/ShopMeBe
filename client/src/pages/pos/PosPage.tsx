@@ -158,7 +158,7 @@ export default function PosPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">M</div>
-              <h1 className="text-lg font-bold text-gray-800">ShopMeBe - Bán tại quầy</h1>
+              <h1 className="text-lg font-bold text-gray-800">Shop Mẹ & Bé Ánh Tuyết - Bán tại quầy</h1>
             </div>
             <a href="/admin" className="text-sm text-gray-500 hover:text-gray-700">← Quản trị</a>
           </div>
@@ -384,7 +384,7 @@ export default function PosPage() {
             {/* Receipt */}
             <div id="receipt-content" className="p-5 font-mono text-sm">
               <div className="text-center mb-4">
-                <p className="text-lg font-bold">SHOPME.BE</p>
+                <p className="text-lg font-bold">SHOP MẸ & BÉ ÁNH TUYẾT</p>
                 <p className="text-xs text-gray-500">Cảm ơn quý khách!</p>
                 <p className="text-xs text-gray-400">{new Date(receipt.createdAt).toLocaleString('vi-VN')}</p>
               </div>

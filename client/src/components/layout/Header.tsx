@@ -63,8 +63,8 @@ export default function Header() {
               M
             </div>
             <div>
-              <span className="text-xl font-bold text-primary-600">ShopMe</span>
-              <span className="text-xl font-bold text-secondary-500">Be</span>
+              <span className="text-xl font-bold text-primary-600">Shop Mẹ & Bé </span>
+              <span className="text-xl font-bold text-secondary-500">Ánh Tuyết</span>
             </div>
           </Link>
 

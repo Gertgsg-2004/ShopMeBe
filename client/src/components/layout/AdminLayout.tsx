@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
-  Menu, X, LogOut, ChevronRight, Bell
+  Menu, X, LogOut, ChevronRight, Bell, Warehouse, Truck, BarChart2, ShoppingCart
 } from 'lucide-react'
 import { useAppDispatch } from '../../hooks/useAppSelector'
 import { useAppSelector } from '../../hooks/useAppSelector'
@@ -15,6 +15,9 @@ const navItems = [
   { path: '/admin/don-hang', icon: ShoppingBag, label: 'Đơn hàng' },
   { path: '/admin/khach-hang', icon: Users, label: 'Khách hàng' },
   { path: '/admin/khuyen-mai', icon: Tag, label: 'Khuyến mãi' },
+  { path: '/admin/kho-hang', icon: Warehouse, label: 'Kho hàng' },
+  { path: '/admin/nha-cung-cap', icon: Truck, label: 'Nhà cung cấp' },
+  { path: '/admin/bao-cao', icon: BarChart2, label: 'Báo cáo' },
 ]
 
 export default function AdminLayout() {
@@ -70,7 +73,12 @@ export default function AdminLayout() {
           })}
         </nav>
 
-        <div className="p-3 border-t border-gray-100">
+        <div className="p-3 border-t border-gray-100 space-y-1">
+          <a href="/pos" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors w-full">
+            <ShoppingCart size={18} className="text-primary-500" />
+            {sidebarOpen && <span>Bán tại quầy</span>}
+          </a>
           <button onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors w-full">
             <LogOut size={18} />

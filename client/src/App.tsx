@@ -25,11 +25,16 @@ import AdminOrdersPage from './pages/admin/AdminOrdersPage'
 import AdminCustomersPage from './pages/admin/AdminCustomersPage'
 import AdminCouponsPage from './pages/admin/AdminCouponsPage'
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
+import AdminSuppliersPage from './pages/admin/AdminSuppliersPage'
+import AdminWarehousePage from './pages/admin/AdminWarehousePage'
+import AdminReportsPage from './pages/admin/AdminReportsPage'
+import PosPage from './pages/pos/PosPage'
 
-function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
+function ProtectedRoute({ children, adminOnly = false, roles: requiredRoles }: { children: React.ReactNode; adminOnly?: boolean; roles?: string[] }) {
   const { isAuthenticated, roles } = useAppSelector((s) => s.auth)
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (adminOnly && !roles.includes('Admin')) return <Navigate to="/" replace />
+  if (requiredRoles && !requiredRoles.some(r => roles.includes(r))) return <Navigate to="/" replace />
   return <>{children}</>
 }
 
@@ -52,6 +57,9 @@ export default function App() {
         <Route path="/don-hang/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
       </Route>
 
+      {/* POS - standalone fullscreen */}
+      <Route path="/pos" element={<ProtectedRoute adminOnly><PosPage /></ProtectedRoute>} />
+
       {/* Admin routes */}
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
         <Route index element={<DashboardPage />} />
@@ -60,6 +68,9 @@ export default function App() {
         <Route path="khach-hang" element={<AdminCustomersPage />} />
         <Route path="khuyen-mai" element={<AdminCouponsPage />} />
         <Route path="danh-muc" element={<AdminCategoriesPage />} />
+        <Route path="nha-cung-cap" element={<AdminSuppliersPage />} />
+        <Route path="kho-hang" element={<AdminWarehousePage />} />
+        <Route path="bao-cao" element={<AdminReportsPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

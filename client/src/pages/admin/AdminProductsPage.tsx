@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Pencil, Trash2, Search, Image } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Image, Barcode } from 'lucide-react'
+import BarcodeDisplay from '../../components/barcode/BarcodeDisplay'
 import { adminService } from '../../services/adminService'
 import { categoryService } from '../../services/categoryService'
 import { productService } from '../../services/productService'
@@ -19,6 +20,7 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [barcodeProduct, setBarcodeProduct] = useState<Product | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [previewImages, setPreviewImages] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -182,10 +184,13 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex gap-1">
-                        <button onClick={() => openEdit(p)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                        <button onClick={() => openEdit(p)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Sửa">
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => handleDelete(p.id, p.name)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => setBarcodeProduct(p)} className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition-colors" title="In mã vạch">
+                          <Barcode size={15} />
+                        </button>
+                        <button onClick={() => handleDelete(p.id, p.name)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors" title="Xóa">
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -280,6 +285,27 @@ export default function AdminProductsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal in mã vạch */}
+      {barcodeProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold text-gray-800">Mã vạch sản phẩm</h3>
+              <button onClick={() => setBarcodeProduct(null)} className="p-1 rounded-full hover:bg-gray-100">
+                <span className="text-gray-500 text-xl leading-none">&times;</span>
+              </button>
+            </div>
+            <div className="p-4">
+              <BarcodeDisplay
+                value={barcodeProduct.sku || `SP${String(barcodeProduct.id).padStart(6, '0')}`}
+                productName={barcodeProduct.name}
+                price={barcodeProduct.salePrice || barcodeProduct.price}
+              />
+            </div>
           </div>
         </div>
       )}

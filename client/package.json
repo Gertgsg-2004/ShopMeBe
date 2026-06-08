@@ -22,7 +22,10 @@
     "lucide-react": "^0.378.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
-    "numeral": "^2.0.6"
+    "numeral": "^2.0.6",
+    "@zxing/browser": "^0.1.4",
+    "@zxing/library": "^0.21.2",
+    "jsbarcode": "^3.11.6"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

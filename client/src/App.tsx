@@ -29,6 +29,8 @@ import AdminSuppliersPage from './pages/admin/AdminSuppliersPage'
 import AdminWarehousePage from './pages/admin/AdminWarehousePage'
 import AdminReportsPage from './pages/admin/AdminReportsPage'
 import PosPage from './pages/pos/PosPage'
+import PaymentSuccessPage from './pages/checkout/PaymentSuccessPage'
+import PaymentFailedPage from './pages/checkout/PaymentFailedPage'
 
 function ProtectedRoute({ children, adminOnly = false, roles: requiredRoles }: { children: React.ReactNode; adminOnly?: boolean; roles?: string[] }) {
   const { isAuthenticated, roles } = useAppSelector((s) => s.auth)
@@ -55,6 +57,8 @@ export default function App() {
         <Route path="/tai-khoan" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/don-hang" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
         <Route path="/don-hang/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+        <Route path="/thanh-toan/thanh-cong" element={<PaymentSuccessPage />} />
+        <Route path="/thanh-toan/that-bai" element={<PaymentFailedPage />} />
       </Route>
 
       {/* POS - standalone fullscreen */}

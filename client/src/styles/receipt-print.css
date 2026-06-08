@@ -1,0 +1,17 @@
+@media print {
+  body * { visibility: hidden; }
+  #receipt-content, #receipt-content * { visibility: visible; }
+  #receipt-content {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 80mm;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 3mm;
+  }
+}

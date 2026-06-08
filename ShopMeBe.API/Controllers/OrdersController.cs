@@ -139,7 +139,7 @@ public class OrdersController : ControllerBase
     [HttpPut("{id:int}/status")]
     public async Task<ActionResult<ApiResponseDto<object>>> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto dto)
     {
-        if (!await _orderRepo.GetByIdAsync(id) is null == false)
+        if (await _orderRepo.GetByIdAsync(id) is not null)
         {
             await _orderRepo.UpdateStatusAsync(id, dto.Status);
         }

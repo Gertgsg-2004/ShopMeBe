@@ -3,6 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <SpaRoot>..\client\</SpaRoot>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
@@ -18,4 +19,8 @@
     <ProjectReference Include="..\ShopMeBe.Core\ShopMeBe.Core.csproj" />
     <ProjectReference Include="..\ShopMeBe.Infrastructure\ShopMeBe.Infrastructure.csproj" />
   </ItemGroup>
+
+  <Target Name="StartReactDev" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <Exec Command="start cmd /k &quot;cd /d $(SpaRoot) &amp;&amp; npm run dev&quot;" />
+  </Target>
 </Project>

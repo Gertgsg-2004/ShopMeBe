@@ -45,7 +45,7 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     startScanning();
 
     return () => {
-      readerRef.current?.reset();
+      BrowserMultiFormatReader.releaseAllStreams();
     };
   }, [onScan]);
 

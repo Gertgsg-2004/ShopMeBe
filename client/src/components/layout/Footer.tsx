@@ -61,25 +61,26 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <MapPin size={16} className="shrink-0 mt-0.5 text-primary-400" />
-                <span>123 Đường ABC, Quận 1, TP. Hồ Chí Minh</span>
+                <span>Số nahf 189,Mai Sơn,Sơn La
+                </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone size={16} className="shrink-0 text-primary-400" />
-                <a href="tel:1900xxxx" className="hover:text-primary-400 transition-colors">1900 xxxx</a>
+                <a href="tel:0986844108" className="hover:text-primary-400 transition-colors">0986844108</a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail size={16} className="shrink-0 text-primary-400" />
-                <a href="mailto:hello@shopmebe.vn" className="hover:text-primary-400 transition-colors">hello@shopmebe.vn</a>
+                <a href="mailto:T@gmail.com" className="hover:text-primary-400 transition-colors">hello@shopmebe.vn</a>
               </li>
             </ul>
             <div className="mt-4">
-              <p className="text-xs text-gray-500 mb-2">Giờ làm việc: 8:00 - 21:00 (T2 - CN)</p>
+              <p className="text-xs text-gray-500 mb-2">Giờ làm việc: 7:30 - 19:00 (T2 - CN)</p>
             </div>
           </div>
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-6 text-center text-xs text-gray-500">
-          <p>© 2024 ShopMeBe. Tất cả quyền được bảo lưu.</p>
+          <p>© 2026 ShopMeBeAnhTuyet. code by Gertgsg_2004.</p>
         </div>
       </div>
     </footer>

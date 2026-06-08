@@ -1,0 +1,32 @@
+# ---------- .NET ----------
+bin/
+obj/
+*.user
+*.suo
+.vs/
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.pdb
+
+# ---------- Node / React ----------
+node_modules/
+dist/
+client/node_modules/
+client/dist/
+*.local
+
+# ---------- Logs ----------
+*.log
+npm-debug.log*
+
+# ---------- Environment ----------
+.env
+.env.local
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+
+# ---------- Uploads (runtime) ----------
+ShopMeBe.API/wwwroot/uploads/

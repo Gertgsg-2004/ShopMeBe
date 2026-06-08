@@ -22,5 +22,7 @@ public class Order
     public string? CouponCode { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public int? PosSessionId { get; set; }
+    public PosSession? PosSession { get; set; }
     public ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 }

@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 using ShopMeBe.Core.DTOs;
+using ShopMeBe.Core.Enums;
 using ShopMeBe.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -87,10 +88,10 @@ public class PaymentController : ControllerBase
             if (parts.Length > 0 && int.TryParse(parts[0], out var orderId))
             {
                 var order = await _db.Orders.FindAsync(orderId);
-                if (order != null && order.Status == ShopMeBe.Core.Entities.OrderStatus.Pending)
+                if (order != null && order.Status == OrderStatus.Pending)
                 {
-                    order.Status = ShopMeBe.Core.Entities.OrderStatus.Processing;
-                    order.PaymentMethod = "VNPay";
+                    order.Status = OrderStatus.Confirmed;
+                    order.PaymentMethod = PaymentMethod.EWallet;
                     await _db.SaveChangesAsync();
                 }
             }

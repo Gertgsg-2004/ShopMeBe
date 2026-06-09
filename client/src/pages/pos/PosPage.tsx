@@ -256,6 +256,7 @@ export default function PosPage() {
               placeholder="Tìm sản phẩm theo tên, mã vạch... (F1)"
               className="w-full pl-10 pr-4 py-3 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
             />
+          </div>
         </div>
 
         {/* Content area */}
@@ -453,7 +454,6 @@ export default function PosPage() {
             </button>
           </div>
         </div>
-      )}
 
       {/* Receipt Modal */}
       {showReceipt && receipt && (

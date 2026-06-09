@@ -18,6 +18,7 @@ const paymentMethods = [
 
 export default function PosPage() {
   const [activeTab, setActiveTab] = useState<'sell' | 'return'>('sell')
+  const [showReturnModal, setShowReturnModal] = useState(false)
 
   // --- Sell tab state ---
   const [products, setProducts] = useState<PosProduct[]>([])
@@ -227,53 +228,34 @@ export default function PosPage() {
               <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">M</div>
               <h1 className="text-lg font-bold text-gray-800">Shop Mẹ & Bé Ánh Tuyết - Bán tại quầy</h1>
             </div>
-            <a href="/admin" className="text-sm text-gray-500 hover:text-gray-700">← Quản trị</a>
+            <a href="/admin" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">← Quản trị</a>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => { setActiveTab('return'); fetchOrders(); setShowReturnModal(true) }}
+                title="Trả hàng"
+                className="p-2 rounded-xl hover:bg-orange-50 text-orange-500 hover:text-orange-600 transition-colors border border-transparent hover:border-orange-200"
+              >
+                <RotateCcw size={18} />
+              </button>
+              <button
+                onClick={handlePrint}
+                title="In hóa đơn gần nhất"
+                className="p-2 rounded-xl hover:bg-blue-50 text-blue-500 hover:text-blue-600 transition-colors border border-transparent hover:border-blue-200"
+              >
+                <Printer size={18} />
+              </button>
+            </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 mb-3 bg-gray-100 rounded-xl p-1">
-            <button
-              onClick={() => setActiveTab('sell')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'sell' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <ShoppingCart size={16} /> Bán hàng
-            </button>
-            <button
-              onClick={() => setActiveTab('return')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'return' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <RotateCcw size={16} /> Trả hàng
-            </button>
-          </div>
-
-          {activeTab === 'sell' && (
-            <div className="relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                ref={searchRef}
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Tìm sản phẩm theo tên, mã vạch... (F1)"
-                className="w-full pl-10 pr-4 py-3 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-              />
-            </div>
-          )}
-
-          {activeTab === 'return' && (
-            <div className="relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                value={returnSearch}
-                onChange={e => setReturnSearch(e.target.value)}
-                placeholder="Tìm theo mã đơn hoặc tên sản phẩm..."
-                className="w-full pl-10 pr-4 py-3 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-              />
-            </div>
-          )}
+          <div className="relative">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              ref={searchRef}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Tìm sản phẩm theo tên, mã vạch... (F1)"
+              className="w-full pl-10 pr-4 py-3 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+            />
         </div>
 
         {/* Content area */}
@@ -334,75 +316,11 @@ export default function PosPage() {
             </>
           )}
 
-          {/* Return tab content */}
-          {activeTab === 'return' && (
-            <>
-              {loadingOrders && (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full" />
-                </div>
-              )}
-
-              {!loadingOrders && filteredOrders.length === 0 && (
-                <div className="text-center py-12 text-gray-400">
-                  <RotateCcw size={36} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-lg">Không tìm thấy đơn hàng</p>
-                </div>
-              )}
-
-              {!loadingOrders && filteredOrders.length > 0 && (
-                <div className="rounded-xl border border-gray-200 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                      <tr>
-                        {['Mã đơn', 'Thời gian', 'Sản phẩm', 'Tổng tiền', 'Trạng thái', ''].map(h => (
-                          <th key={h} className="text-left py-3 px-3 text-gray-500 font-medium">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {filteredOrders.map(order => {
-                        const status = getStatusLabel(order.status)
-                        return (
-                          <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="py-3 px-3 font-medium text-gray-800">{order.orderCode}</td>
-                            <td className="py-3 px-3 text-gray-500 text-xs whitespace-nowrap">
-                              {new Date(order.createdAt).toLocaleString('vi-VN')}
-                            </td>
-                            <td className="py-3 px-3 text-gray-600 max-w-[160px]">
-                              <p className="truncate">{order.items?.map(i => i.productName).join(', ') || '-'}</p>
-                            </td>
-                            <td className="py-3 px-3 font-semibold text-gray-800 whitespace-nowrap">
-                              {formatCurrency(order.total)}
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status.cls}`}>{status.label}</span>
-                            </td>
-                            <td className="py-3 px-3">
-                              {order.status !== 4 && (
-                                <button
-                                  onClick={() => { setReturnOrder(order); setReturnReason('') }}
-                                  className="flex items-center gap-1 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium hover:bg-orange-100 transition-colors"
-                                >
-                                  <RotateCcw size={12} /> Trả hàng
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
         </div>
       </div>
 
-      {/* Right Panel - Cart (only visible in sell tab) */}
-      {activeTab === 'sell' && (
-        <div className="flex flex-col bg-white" style={{ width: '40%', minWidth: '360px' }}>
+      {/* Right Panel - Cart */}
+      <div className="flex flex-col bg-white" style={{ width: '40%', minWidth: '360px' }}>
           {/* Cart Header */}
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -588,6 +506,68 @@ export default function PosPage() {
               <button onClick={() => setShowReceipt(false)} className="flex-1 bg-primary-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-primary-600">
                 Đơn tiếp theo
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return List Modal */}
+      {showReturnModal && !returnOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RotateCcw size={20} className="text-orange-500" />
+                <h3 className="font-semibold text-gray-800">Trả hàng</h3>
+              </div>
+              <button onClick={() => setShowReturnModal(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
+            </div>
+            <div className="p-4 border-b border-gray-100">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={returnSearch}
+                  onChange={e => setReturnSearch(e.target.value)}
+                  placeholder="Tìm theo mã đơn hoặc tên sản phẩm..."
+                  className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-300"
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {loadingOrders ? (
+                <div className="flex justify-center py-8"><div className="animate-spin w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full" /></div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="text-center py-12 text-gray-400"><RotateCcw size={32} className="mx-auto mb-2 opacity-30" /><p>Không tìm thấy đơn hàng</p></div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredOrders.map(order => {
+                    const status = getStatusLabel(order.status)
+                    return (
+                      <div key={order.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-gray-50">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-800 text-sm">{order.orderCode}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status.cls}`}>{status.label}</span>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">{new Date(order.createdAt).toLocaleString('vi-VN')}</p>
+                          <p className="text-xs text-gray-500 truncate mt-0.5">{order.items?.map(i => i.productName).join(', ') || '-'}</p>
+                        </div>
+                        <div className="text-right ml-3 shrink-0">
+                          <p className="font-semibold text-gray-800 text-sm">{formatCurrency(order.total)}</p>
+                          {order.status !== 4 && (
+                            <button
+                              onClick={() => { setReturnOrder(order); setReturnReason('') }}
+                              className="mt-1 flex items-center gap-1 px-3 py-1 bg-orange-50 text-orange-600 rounded-lg text-xs font-medium hover:bg-orange-100"
+                            >
+                              <RotateCcw size={11} /> Trả hàng
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

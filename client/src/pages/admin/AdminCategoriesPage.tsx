@@ -165,9 +165,13 @@ export default function AdminCategoriesPage() {
                 <span className="text-sm text-gray-700">Hiển thị</span>
               </label>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh danh mục</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon danh mục</label>
+                <p className="text-xs text-gray-400 mb-2">Ảnh vuông nhỏ (64×64px), hiển thị làm icon đại diện</p>
                 {imagePreview && (
-                  <img src={imagePreview} alt="preview" className="w-20 h-20 rounded-xl object-cover mb-2" />
+                  <div className="flex items-center gap-3 mb-2">
+                    <img src={imagePreview} alt="preview" className="w-14 h-14 rounded-xl object-cover border border-gray-200" />
+                    <span className="text-xs text-gray-400">Preview icon</span>
+                  </div>
                 )}
                 <input
                   ref={imageInputRef}

@@ -123,7 +123,7 @@ export default function HomePage() {
             <Link key={cat.id} to={`/danh-muc/${cat.slug}`}
               className="group flex flex-col items-center p-4 bg-white rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl flex items-center justify-center mb-3 text-3xl group-hover:scale-110 transition-transform">
-                {cat.slug === 'do-ba-bau' ? '🤰' : cat.slug === 'do-so-sinh' ? '👶' : cat.slug === 'do-choi' ? '🧸' : cat.slug === 'sua-va-thuc-pham' ? '🍼' : '🎀'}
+                {cat.slug === 'do-ba-bau' ? '🤰' : cat.slug === 'do-so-sinh' ? '👶' : cat.slug === 'do-choi' ? '🧸' : cat.slug === 'sua-va-thuc-pham' ? '🍼' : cat.slug === 'bim' ? '🧷' : cat.slug === 'thoi-trang-thu-dong' ? '🧥' : '🎀'}
               </div>
               <p className="text-sm font-medium text-gray-700 text-center group-hover:text-primary-600 transition-colors">{cat.name}</p>
               <p className="text-xs text-gray-400 mt-1">{cat.productCount} sản phẩm</p>

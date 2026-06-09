@@ -31,6 +31,17 @@ export default function CategoryPage() {
   const sort = searchParams.get('sort') || 'createdAt_desc'
   const minPrice = searchParams.get('minPrice') || ''
   const maxPrice = searchParams.get('maxPrice') || ''
+  const keyword = searchParams.get('keyword') || ''
+
+  const productTypes = [
+    { label: 'Tất cả', value: '' },
+    { label: '👕 Áo', value: 'áo' },
+    { label: '👖 Quần', value: 'quần' },
+    { label: '👟 Giày', value: 'giày' },
+    { label: '🧢 Nón', value: 'nón' },
+    { label: '🧦 Tất', value: 'tất' },
+    { label: '🧤 Bao tay', value: 'bao tay' },
+  ]
 
   useEffect(() => {
     if (!slug) return
@@ -51,6 +62,7 @@ export default function CategoryPage() {
       sortOrder,
       minPrice: minPrice ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      search: keyword || undefined,
     }).then((res) => {
       if (res.data) {
         setProducts(res.data.items)
@@ -58,7 +70,7 @@ export default function CategoryPage() {
         setTotalPages(res.data.totalPages)
       }
     }).finally(() => setLoading(false))
-  }, [category, page, sort, minPrice, maxPrice])
+  }, [category, page, sort, minPrice, maxPrice, keyword])
 
   const updateParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams)
@@ -78,10 +90,31 @@ export default function CategoryPage() {
       <div className="flex items-start gap-6">
         {/* Filter Sidebar */}
         <aside className={`${showFilter ? 'block' : 'hidden'} md:block w-56 shrink-0`}>
-          <div className="card">
-            <h3 className="font-semibold text-gray-800 mb-4">Bộ lọc</h3>
+          <div className="card space-y-6">
+            <h3 className="font-semibold text-gray-800">Bộ lọc</h3>
 
-            <div className="mb-6">
+            {/* Loại sản phẩm */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-3">Loại sản phẩm</p>
+              <div className="flex flex-wrap gap-2">
+                {productTypes.map((t) => (
+                  <button
+                    key={t.value}
+                    onClick={() => updateParam('keyword', t.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      keyword === t.value
+                        ? 'bg-primary-500 text-white border-primary-500'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Khoảng giá */}
+            <div>
               <p className="text-sm font-medium text-gray-700 mb-3">Khoảng giá</p>
               <div className="space-y-2">
                 <input type="number" placeholder="Từ (đ)" value={minPrice}
@@ -91,6 +124,14 @@ export default function CategoryPage() {
                   onChange={(e) => updateParam('maxPrice', e.target.value)}
                   className="input-field text-sm" />
               </div>
+              {(minPrice || maxPrice) && (
+                <button
+                  onClick={() => { updateParam('minPrice', ''); updateParam('maxPrice', ''); }}
+                  className="mt-2 text-xs text-red-500 hover:text-red-700"
+                >
+                  Xóa bộ lọc giá
+                </button>
+              )}
             </div>
           </div>
         </aside>

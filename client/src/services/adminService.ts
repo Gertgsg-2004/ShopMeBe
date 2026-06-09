@@ -209,6 +209,13 @@ export const adminService = {
     return data
   },
 
+  async updateCategory(id: number, formData: FormData): Promise<ApiResponse<Category>> {
+    const { data } = await api.put<ApiResponse<Category>>(`/categories/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return data
+  },
+
   async getCoupons(): Promise<ApiResponse<Coupon[]>> {
     const { data } = await api.get<ApiResponse<Coupon[]>>('/coupons')
     return data

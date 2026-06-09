@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { adminService } from '../../services/adminService'
 import { categoryService } from '../../services/categoryService'
@@ -13,6 +13,8 @@ export default function AdminCategoriesPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState({ name: '', description: '', sortOrder: '0', isActive: true, parentId: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string>('')
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const fetchCategories = async () => {
     setLoading(true)
@@ -26,13 +28,20 @@ export default function AdminCategoriesPage() {
   const openCreate = () => {
     setEditingId(null)
     setForm({ name: '', description: '', sortOrder: '0', isActive: true, parentId: '' })
+    setImagePreview('')
     setShowModal(true)
   }
 
   const openEdit = (c: Category) => {
     setEditingId(c.id)
     setForm({ name: c.name, description: c.description || '', sortOrder: c.sortOrder.toString(), isActive: c.isActive, parentId: c.parentId?.toString() || '' })
+    setImagePreview(c.imageUrl || '')
     setShowModal(true)
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) setImagePreview(URL.createObjectURL(file))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,8 +54,11 @@ export default function AdminCategoriesPage() {
       fd.append('sortOrder', form.sortOrder)
       fd.append('isActive', String(form.isActive))
       if (form.parentId) fd.append('parentId', form.parentId)
+      if (imageInputRef.current?.files?.[0]) fd.append('image', imageInputRef.current.files[0])
 
-      const res = await adminService.createCategory(fd)
+      const res = editingId
+        ? await adminService.updateCategory(editingId, fd)
+        : await adminService.createCategory(fd)
       if (res.success) {
         toast.success(editingId ? 'Cập nhật thành công!' : 'Tạo danh mục thành công!')
         setShowModal(false)
@@ -152,6 +164,19 @@ export default function AdminCategoriesPage() {
                 <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
                 <span className="text-sm text-gray-700">Hiển thị</span>
               </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh danh mục</label>
+                {imagePreview && (
+                  <img src={imagePreview} alt="preview" className="w-20 h-20 rounded-xl object-cover mb-2" />
+                )}
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                />
+              </div>
               <div className="flex gap-3 justify-end pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Hủy</button>
                 <button type="submit" disabled={submitting} className="btn-primary">

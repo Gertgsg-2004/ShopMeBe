@@ -211,5 +211,18 @@ export interface Customer {
   createdAt: string
   totalOrders: number
   totalSpent: number
+  totalTopUp: number
   walletBalance: number
+  lastOrderAt?: string
+}
+
+export interface Notification {
+  id: number
+  title: string
+  content: string
+  type: string
+  targetUserId?: string
+  targetGroup?: string
+  createdAt: string
+  isRead: boolean
 }

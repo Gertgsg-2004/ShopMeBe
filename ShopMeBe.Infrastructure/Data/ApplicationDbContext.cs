@@ -27,25 +27,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<InventoryCheckItem> InventoryCheckItems => Set<InventoryCheckItem>();
     public DbSet<PosSession> PosSessions => Set<PosSession>();
     public DbSet<WalletTopUp> WalletTopUps => Set<WalletTopUp>();
+    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<NotificationRead> NotificationReads => Set<NotificationRead>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
-        // Category
         builder.Entity<Category>(e =>
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).IsRequired().HasMaxLength(200);
             e.Property(x => x.Slug).IsRequired().HasMaxLength(200);
             e.HasIndex(x => x.Slug).IsUnique();
-            e.HasOne(x => x.Parent)
-                .WithMany(x => x.Children)
-                .HasForeignKey(x => x.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Parent).WithMany(x => x.Children).HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Product
         builder.Entity<Product>(e =>
         {
             e.HasKey(x => x.Id);
@@ -54,64 +52,38 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(x => x.Slug).IsUnique();
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
             e.Property(x => x.SalePrice).HasColumnType("decimal(18,2)");
-            e.HasOne(x => x.Category)
-                .WithMany(x => x.Products)
-                .HasForeignKey(x => x.CategoryId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Category).WithMany(x => x.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ProductImage
         builder.Entity<ProductImage>(e =>
         {
             e.HasKey(x => x.Id);
-            e.HasOne(x => x.Product)
-                .WithMany(x => x.Images)
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany(x => x.Images).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Review
         builder.Entity<Review>(e =>
         {
             e.HasKey(x => x.Id);
-            e.HasOne(x => x.Product)
-                .WithMany(x => x.Reviews)
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.User)
-                .WithMany(x => x.Reviews)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Product).WithMany(x => x.Reviews).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User).WithMany(x => x.Reviews).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Cart
         builder.Entity<Cart>(e =>
         {
             e.HasKey(x => x.Id);
             e.Ignore(x => x.Total);
-            e.HasOne(x => x.User)
-                .WithOne(x => x.Cart)
-                .HasForeignKey<Cart>(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User).WithOne(x => x.Cart).HasForeignKey<Cart>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        // CartItem
         builder.Entity<CartItem>(e =>
         {
             e.HasKey(x => x.Id);
             e.Ignore(x => x.SubTotal);
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
-            e.HasOne(x => x.Cart)
-                .WithMany(x => x.Items)
-                .HasForeignKey(x => x.CartId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Product)
-                .WithMany(x => x.CartItems)
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Cart).WithMany(x => x.Items).HasForeignKey(x => x.CartId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany(x => x.CartItems).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Order
         builder.Entity<Order>(e =>
         {
             e.HasKey(x => x.Id);
@@ -121,29 +93,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.ShippingFee).HasColumnType("decimal(18,2)");
             e.Property(x => x.DiscountAmount).HasColumnType("decimal(18,2)");
             e.Property(x => x.Total).HasColumnType("decimal(18,2)");
-            e.HasOne(x => x.User)
-                .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.User).WithMany(x => x.Orders).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PosSession).WithMany(x => x.Orders).HasForeignKey(x => x.PosSessionId).OnDelete(DeleteBehavior.SetNull);
         });
 
-        // OrderItem
         builder.Entity<OrderItem>(e =>
         {
             e.HasKey(x => x.Id);
             e.Ignore(x => x.SubTotal);
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
-            e.HasOne(x => x.Order)
-                .WithMany(x => x.Items)
-                .HasForeignKey(x => x.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Product)
-                .WithMany(x => x.OrderItems)
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Order).WithMany(x => x.Items).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany(x => x.OrderItems).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Coupon
         builder.Entity<Coupon>(e =>
         {
             e.HasKey(x => x.Id);
@@ -154,37 +116,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.MaxDiscount).HasColumnType("decimal(18,2)");
         });
 
-        // FlashSale
-        builder.Entity<FlashSale>(e =>
-        {
-            e.HasKey(x => x.Id);
-        });
+        builder.Entity<FlashSale>(e => e.HasKey(x => x.Id));
 
-        // FlashSaleItem
         builder.Entity<FlashSaleItem>(e =>
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.SalePrice).HasColumnType("decimal(18,2)");
-            e.HasOne(x => x.FlashSale)
-                .WithMany(x => x.Items)
-                .HasForeignKey(x => x.FlashSaleId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Product)
-                .WithMany(x => x.FlashSaleItems)
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.FlashSale).WithMany(x => x.Items).HasForeignKey(x => x.FlashSaleId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany(x => x.FlashSaleItems).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Order - PosSession relation
-        builder.Entity<Order>(e =>
-        {
-            e.HasOne(x => x.PosSession)
-                .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.PosSessionId)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
-
-        // Supplier
         builder.Entity<Supplier>(e =>
         {
             e.HasKey(x => x.Id);
@@ -192,7 +133,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.TotalDebt).HasColumnType("decimal(18,2)");
         });
 
-        // PurchaseOrder
         builder.Entity<PurchaseOrder>(e =>
         {
             e.HasKey(x => x.Id);
@@ -201,94 +141,80 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
             e.Property(x => x.PaidAmount).HasColumnType("decimal(18,2)");
             e.Ignore(x => x.DebtAmount);
-            e.HasOne(x => x.Supplier)
-                .WithMany(x => x.PurchaseOrders)
-                .HasForeignKey(x => x.SupplierId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supplier).WithMany(x => x.PurchaseOrders).HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // PurchaseOrderItem
         builder.Entity<PurchaseOrderItem>(e =>
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.UnitCost).HasColumnType("decimal(18,2)");
             e.Ignore(x => x.Total);
-            e.HasOne(x => x.PurchaseOrder)
-                .WithMany(x => x.Items)
-                .HasForeignKey(x => x.PurchaseOrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Product)
-                .WithMany()
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PurchaseOrder).WithMany(x => x.Items).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // StockTransaction
         builder.Entity<StockTransaction>(e =>
         {
             e.HasKey(x => x.Id);
-            e.HasOne(x => x.Product)
-                .WithMany()
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.PurchaseOrder)
-                .WithMany(x => x.StockTransactions)
-                .HasForeignKey(x => x.PurchaseOrderId)
-                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PurchaseOrder).WithMany(x => x.StockTransactions).HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.SetNull);
         });
 
-        // InventoryCheck
         builder.Entity<InventoryCheck>(e =>
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Code).IsRequired().HasMaxLength(50);
         });
 
-        // InventoryCheckItem
         builder.Entity<InventoryCheckItem>(e =>
         {
             e.HasKey(x => x.Id);
             e.Ignore(x => x.Difference);
-            e.HasOne(x => x.InventoryCheck)
-                .WithMany(x => x.Items)
-                .HasForeignKey(x => x.InventoryCheckId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(x => x.Product)
-                .WithMany()
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.InventoryCheck).WithMany(x => x.Items).HasForeignKey(x => x.InventoryCheckId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // PosSession
         builder.Entity<PosSession>(e =>
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.OpeningCash).HasColumnType("decimal(18,2)");
             e.Property(x => x.ClosingCash).HasColumnType("decimal(18,2)");
-            e.HasOne(x => x.Cashier)
-                .WithMany()
-                .HasForeignKey(x => x.CashierId)
-                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Cashier).WithMany().HasForeignKey(x => x.CashierId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // WalletTopUp
         builder.Entity<WalletTopUp>(e =>
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
-            e.HasOne(x => x.User)
-                .WithMany()
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        // ApplicationUser wallet
+        builder.Entity<WalletTransaction>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            e.Property(x => x.BalanceBefore).HasColumnType("decimal(18,2)");
+            e.Property(x => x.BalanceAfter).HasColumnType("decimal(18,2)");
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<ApplicationUser>(e =>
         {
             e.Property(x => x.WalletBalance).HasColumnType("decimal(18,2)");
         });
 
-        // Seed data
+        builder.Entity<Notification>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Title).IsRequired().HasMaxLength(300);
+        });
+
+        builder.Entity<NotificationRead>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Notification).WithMany(x => x.ReadBy).HasForeignKey(x => x.NotificationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<Category>().HasData(
             new Category { Id = 1, Name = "Đồ bà bầu", Slug = "do-ba-bau", Description = "Thời trang và phụ kiện cho bà bầu", SortOrder = 1, IsActive = true },
             new Category { Id = 2, Name = "Đồ sơ sinh", Slug = "do-so-sinh", Description = "Sản phẩm dành cho trẻ sơ sinh", SortOrder = 2, IsActive = true },

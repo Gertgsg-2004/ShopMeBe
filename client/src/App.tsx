@@ -29,6 +29,9 @@ import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
 import AdminSuppliersPage from './pages/admin/AdminSuppliersPage'
 import AdminWarehousePage from './pages/admin/AdminWarehousePage'
 import AdminReportsPage from './pages/admin/AdminReportsPage'
+import AdminFinancePage from './pages/admin/AdminFinancePage'
+import AdminNotificationsPage from './pages/admin/AdminNotificationsPage'
+import AdminStaffPage from './pages/admin/AdminStaffPage'
 import PosPage from './pages/pos/PosPage'
 import PaymentSuccessPage from './pages/checkout/PaymentSuccessPage'
 import PaymentFailedPage from './pages/checkout/PaymentFailedPage'
@@ -36,7 +39,7 @@ import PaymentFailedPage from './pages/checkout/PaymentFailedPage'
 function ProtectedRoute({ children, adminOnly = false, roles: requiredRoles }: { children: React.ReactNode; adminOnly?: boolean; roles?: string[] }) {
   const { isAuthenticated, roles } = useAppSelector((s) => s.auth)
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (adminOnly && !roles.includes('Admin')) return <Navigate to="/" replace />
+  if (adminOnly && !roles.some(r => ['Admin', 'CSKH', 'Ketoan', 'Kho'].includes(r))) return <Navigate to="/" replace />
   if (requiredRoles && !requiredRoles.some(r => roles.includes(r))) return <Navigate to="/" replace />
   return <>{children}</>
 }
@@ -77,6 +80,9 @@ export default function App() {
         <Route path="nha-cung-cap" element={<AdminSuppliersPage />} />
         <Route path="kho-hang" element={<AdminWarehousePage />} />
         <Route path="bao-cao" element={<AdminReportsPage />} />
+        <Route path="tai-chinh" element={<AdminFinancePage />} />
+        <Route path="thong-bao" element={<AdminNotificationsPage />} />
+        <Route path="nhan-vien" element={<AdminStaffPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

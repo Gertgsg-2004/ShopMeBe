@@ -92,9 +92,19 @@ public class PaymentController : ControllerBase
                 var topUp = await _db.WalletTopUps.Include(t => t.User).FirstOrDefaultAsync(t => t.Id == topUpId);
                 if (topUp != null && !topUp.IsCompleted && topUp.User != null)
                 {
+                    var before = topUp.User.WalletBalance;
                     topUp.IsCompleted = true;
                     topUp.CompletedAt = DateTime.UtcNow;
                     topUp.User.WalletBalance += topUp.Amount;
+                    _db.WalletTransactions.Add(new ShopMeBe.Core.Entities.WalletTransaction
+                    {
+                        UserId = topUp.UserId,
+                        Amount = topUp.Amount,
+                        BalanceBefore = before,
+                        BalanceAfter = topUp.User.WalletBalance,
+                        Type = "TopUp",
+                        Reference = $"WalletTopUp#{topUp.Id}"
+                    });
                     await _db.SaveChangesAsync();
                 }
             }

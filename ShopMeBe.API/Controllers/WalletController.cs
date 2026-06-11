@@ -33,14 +33,23 @@ public class WalletController : ControllerBase
         var user = await _db.Users.FindAsync(UserId);
         if (user == null) return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy người dùng"));
 
-        var history = await _db.WalletTopUps
+        var history = await _db.WalletTransactions
             .Where(t => t.UserId == UserId)
             .OrderByDescending(t => t.CreatedAt)
-            .Take(20)
-            .Select(t => new { t.Id, t.Amount, t.IsCompleted, t.CreatedAt, t.CompletedAt })
+            .Take(30)
+            .Select(t => new { t.Id, t.Amount, t.BalanceBefore, t.BalanceAfter, t.Type, t.Reason, t.Reference, t.CreatedAt })
             .ToListAsync();
 
-        return Ok(ApiResponseDto<object>.Ok(new { balance = user.WalletBalance, history }));
+        var totalTopUp = await _db.WalletTransactions
+            .Where(t => t.UserId == UserId && t.Type == "TopUp")
+            .SumAsync(t => (decimal?)t.Amount) ?? 0;
+
+        return Ok(ApiResponseDto<object>.Ok(new
+        {
+            balance = user.WalletBalance,
+            totalTopUp,
+            history
+        }));
     }
 
     [HttpPost("topup")]
@@ -83,7 +92,6 @@ public class WalletController : ControllerBase
         var queryString = string.Join("&", vnpParams.Select(kv => $"{kv.Key}={HttpUtility.UrlEncode(kv.Value)}"));
         var signData = string.Join("&", vnpParams.Select(kv => $"{kv.Key}={kv.Value}"));
         var secureHash = HmacSha512(hashSecret, signData);
-
         var paymentUrl = $"{payUrl}?{queryString}&vnp_SecureHash={secureHash}";
         return Ok(new ApiResponseDto<string> { Success = true, Data = paymentUrl });
     }
@@ -96,7 +104,4 @@ public class WalletController : ControllerBase
     }
 }
 
-public class TopUpDto
-{
-    public decimal Amount { get; set; }
-}
+public class TopUpDto { public decimal Amount { get; set; } }

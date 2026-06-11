@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
-  Menu, X, LogOut, ChevronRight, Bell, Warehouse, Truck, BarChart2, ShoppingCart
+  Menu, X, LogOut, ChevronRight, Bell, Warehouse, Truck, BarChart2,
+  ShoppingCart, DollarSign, Shield
 } from 'lucide-react'
-import { useAppDispatch } from '../../hooks/useAppSelector'
-import { useAppSelector } from '../../hooks/useAppSelector'
+import { useAppDispatch, useAppSelector } from '../../hooks/useAppSelector'
 import { logout } from '../../store/authSlice'
+import api from '../../services/api'
 
 const navItems = [
   { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
@@ -17,11 +18,15 @@ const navItems = [
   { path: '/admin/khuyen-mai', icon: Tag, label: 'Khuyến mãi' },
   { path: '/admin/kho-hang', icon: Warehouse, label: 'Kho hàng' },
   { path: '/admin/nha-cung-cap', icon: Truck, label: 'Nhà cung cấp' },
+  { path: '/admin/tai-chinh', icon: DollarSign, label: 'Tài chính' },
   { path: '/admin/bao-cao', icon: BarChart2, label: 'Báo cáo' },
+  { path: '/admin/thong-bao', icon: Bell, label: 'Thông báo' },
+  { path: '/admin/nhan-vien', icon: Shield, label: 'Nhân viên' },
 ]
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [unreadCount, setUnreadCount] = useState(0)
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -32,13 +37,18 @@ export default function AdminLayout() {
     navigate('/')
   }
 
-  const isActive = (path: string, exact?: boolean) =>
-    exact ? location.pathname === path : location.pathname.startsWith(path) && path !== '/admin'
-      ? true : exact ? location.pathname === path : false
+  useEffect(() => {
+    api.get('/notifications/unread-count').then(res => {
+      if (res.data?.data) setUnreadCount(res.data.data.unread)
+    }).catch(() => {})
+  }, [location.pathname])
+
+  const currentLabel = navItems.find(n =>
+    n.exact ? location.pathname === n.path : location.pathname === n.path || location.pathname.startsWith(n.path + '/')
+  )?.label ?? 'Quản trị'
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-60' : 'w-16'} bg-white border-r border-gray-100 flex flex-col transition-all duration-300 shrink-0 shadow-sm`}>
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
           {sidebarOpen && (
@@ -52,28 +62,28 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const active = item.exact
               ? location.pathname === item.path
               : location.pathname === item.path || location.pathname.startsWith(item.path + '/')
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                  active ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                }`}
-              >
+              <Link key={item.path} to={item.path}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative ${active ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'}`}>
                 <item.icon size={18} className={active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'} />
                 {sidebarOpen && <span>{item.label}</span>}
                 {sidebarOpen && active && <ChevronRight size={14} className="ml-auto text-primary-400" />}
+                {item.path === '/admin/thong-bao' && unreadCount > 0 && (
+                  <span className={`absolute ${sidebarOpen ? 'right-8' : 'right-1 top-1'} bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1`}>
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             )
           })}
         </nav>
 
-        <div className="p-3 border-t border-gray-100 space-y-1">
+        <div className="p-3 border-t border-gray-100 space-y-0.5">
           <a href="/pos" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors w-full">
             <ShoppingCart size={18} className="text-primary-500" />
@@ -87,16 +97,18 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 shrink-0">
-          <h1 className="text-lg font-semibold text-gray-800">
-            {navItems.find((n) => n.exact ? location.pathname === n.path : location.pathname.startsWith(n.path))?.label ?? 'Quản trị'}
-          </h1>
+          <h1 className="text-lg font-semibold text-gray-800">{currentLabel}</h1>
           <div className="flex items-center gap-3">
-            <button className="relative p-2 hover:bg-gray-100 rounded-xl">
+            <Link to="/admin/thong-bao" className="relative p-2 hover:bg-gray-100 rounded-xl">
               <Bell size={18} className="text-gray-500" />
-            </button>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-primary-300 to-primary-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
                 {user?.fullName?.[0]?.toUpperCase() ?? 'A'}

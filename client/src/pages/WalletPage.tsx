@@ -1,23 +1,35 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Wallet, CreditCard, CheckCircle2, Clock } from 'lucide-react'
+import { Wallet, CreditCard, ArrowUpCircle, ArrowDownCircle } from 'lucide-react'
 import api from '../services/api'
 import { formatCurrency } from '../utils/format'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import toast from 'react-hot-toast'
 
-interface TopUpHistory {
+interface WalletTx {
   id: number
   amount: number
-  isCompleted: boolean
+  balanceBefore: number
+  balanceAfter: number
+  type: string
+  reason?: string
+  reference?: string
   createdAt: string
-  completedAt?: string
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  TopUp: 'Nạp tiền VNPay',
+  AdminCredit: 'Shop cộng tiền',
+  AdminDebit: 'Shop trừ tiền',
+  Purchase: 'Thanh toán đơn hàng',
+  Refund: 'Hoàn tiền',
 }
 
 export default function WalletPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [balance, setBalance] = useState(0)
-  const [history, setHistory] = useState<TopUpHistory[]>([])
+  const [totalTopUp, setTotalTopUp] = useState(0)
+  const [history, setHistory] = useState<WalletTx[]>([])
   const [loading, setLoading] = useState(true)
   const [amount, setAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -29,6 +41,7 @@ export default function WalletPage() {
       const { data } = await api.get('/wallet')
       if (data.data) {
         setBalance(data.data.balance)
+        setTotalTopUp(data.data.totalTopUp || 0)
         setHistory(data.data.history || [])
       }
     } finally {
@@ -76,9 +89,15 @@ export default function WalletPage() {
       </h1>
 
       {/* Balance card */}
-      <div className="bg-gradient-to-r from-primary-500 to-primary-400 rounded-2xl p-6 text-white mb-6">
-        <p className="text-primary-100 text-sm mb-1">Số dư khả dụng</p>
-        <p className="text-3xl font-bold">{formatCurrency(balance)}</p>
+      <div className="bg-gradient-to-r from-primary-500 to-primary-400 rounded-2xl p-6 text-white mb-6 flex items-end justify-between">
+        <div>
+          <p className="text-primary-100 text-sm mb-1">Số dư khả dụng</p>
+          <p className="text-3xl font-bold">{formatCurrency(balance)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-primary-100 text-xs">Tổng đã nạp</p>
+          <p className="text-lg font-semibold">{formatCurrency(totalTopUp)}</p>
+        </div>
       </div>
 
       {/* Top-up form */}
@@ -123,7 +142,7 @@ export default function WalletPage() {
 
       {/* History */}
       <div className="card">
-        <h2 className="font-semibold text-gray-800 mb-4">Lịch sử nạp tiền</h2>
+        <h2 className="font-semibold text-gray-800 mb-4">Lịch sử giao dịch ví</h2>
         {history.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-6">Chưa có giao dịch nào</p>
         ) : (
@@ -131,21 +150,22 @@ export default function WalletPage() {
             {history.map((h) => (
               <div key={h.id} className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3">
-                  {h.isCompleted ? (
-                    <CheckCircle2 size={18} className="text-green-500" />
+                  {h.amount >= 0 ? (
+                    <ArrowUpCircle size={18} className="text-green-500" />
                   ) : (
-                    <Clock size={18} className="text-amber-400" />
+                    <ArrowDownCircle size={18} className="text-red-400" />
                   )}
                   <div>
-                    <p className="text-sm font-medium text-gray-800">Nạp tiền VNPay</p>
+                    <p className="text-sm font-medium text-gray-800">{TYPE_LABELS[h.type] || h.type}</p>
+                    {h.reason && <p className="text-xs text-gray-500">{h.reason}</p>}
                     <p className="text-xs text-gray-400">{new Date(h.createdAt).toLocaleString('vi-VN')}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`font-semibold ${h.isCompleted ? 'text-green-600' : 'text-gray-400'}`}>
-                    +{formatCurrency(h.amount)}
+                  <p className={`font-semibold ${h.amount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {h.amount >= 0 ? '+' : ''}{formatCurrency(h.amount)}
                   </p>
-                  <p className="text-xs text-gray-400">{h.isCompleted ? 'Thành công' : 'Chưa hoàn tất'}</p>
+                  <p className="text-xs text-gray-400">Số dư: {formatCurrency(h.balanceAfter)}</p>
                 </div>
               </div>
             ))}

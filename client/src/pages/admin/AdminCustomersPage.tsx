@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { UserCheck, UserX, Search, KeyRound, Wallet, User, TrendingUp, X } from 'lucide-react'
 import { adminService } from '../../services/adminService'
 import api from '../../services/api'
+import { useAppSelector } from '../../hooks/useAppSelector'
 import { Customer } from '../../types'
 import { formatCurrency, formatDateShort } from '../../utils/format'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -41,6 +42,8 @@ export default function AdminCustomersPage() {
   const [profileTarget, setProfileTarget] = useState<CustomerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const { roles } = useAppSelector((s) => s.auth)
+  const isAdmin = roles.includes('Admin')
 
   const fetchCustomers = async () => {
     setLoading(true)
@@ -170,13 +173,17 @@ export default function AdminCustomersPage() {
                           className="p-1.5 text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"><User size={15} /></button>
                         <button onClick={() => { setResetTarget(c); setNewPassword('') }} title="Đặt lại mật khẩu"
                           className="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"><KeyRound size={15} /></button>
-                        <button onClick={() => { setAdjustTarget(c); setAdjustAmount(''); setAdjustReason(''); setAdjustType('credit') }} title="Điều chỉnh số dư"
-                          className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"><Wallet size={15} /></button>
-                        <button onClick={() => handleToggle(c.id, c.isActive)}
-                          title={c.isActive ? 'Khóa tài khoản' : 'Kích hoạt'}
-                          className={`p-1.5 rounded-lg transition-colors ${c.isActive ? 'text-red-500 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}>
-                          {c.isActive ? <UserX size={15} /> : <UserCheck size={15} />}
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <button onClick={() => { setAdjustTarget(c); setAdjustAmount(''); setAdjustReason(''); setAdjustType('credit') }} title="Điều chỉnh số dư"
+                              className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"><Wallet size={15} /></button>
+                            <button onClick={() => handleToggle(c.id, c.isActive)}
+                              title={c.isActive ? 'Khóa tài khoản' : 'Kích hoạt'}
+                              className={`p-1.5 rounded-lg transition-colors ${c.isActive ? 'text-red-500 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}>
+                              {c.isActive ? <UserX size={15} /> : <UserCheck size={15} />}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

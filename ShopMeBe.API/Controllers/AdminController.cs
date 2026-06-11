@@ -52,7 +52,6 @@ public class AdminController : ControllerBase
             query = query.Where(u => u.FullName.Contains(search) || (u.Email != null && u.Email.Contains(search)) || (u.Phone != null && u.Phone.Contains(search)));
 
         var users = await query.OrderByDescending(u => u.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        var total = await query.CountAsync();
         var ids = users.Select(u => u.Id).ToList();
 
         var orderStats = await _context.Orders
@@ -183,26 +182,20 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetStaff()
     {
         var staffRoles = new[] { "Admin", "CSKH", "Ketoan", "Kho" };
-        var result = new List<object>();
+        var staffUsers = new Dictionary<string, ApplicationUser>();
         foreach (var role in staffRoles)
         {
-            var users = await _userManager.GetUsersInRoleAsync(role);
-            foreach (var u in users)
-            {
-                var roles = await _userManager.GetRolesAsync(u);
-                result.Add(new
-                {
-                    u.Id, u.FullName, u.Email, u.Phone, u.IsActive, u.CreatedAt,
-                    Roles = roles
-                });
-            }
+            foreach (var u in await _userManager.GetUsersInRoleAsync(role))
+                staffUsers.TryAdd(u.Id, u);
         }
-        var distinct = result
-            .GroupBy(x => ((dynamic)x).Id)
-            .Select(g => g.First())
-            .OrderBy(x => ((dynamic)x).FullName)
-            .ToList();
-        return Ok(ApiResponseDto<object>.Ok(distinct));
+
+        var result = new List<object>();
+        foreach (var u in staffUsers.Values.OrderBy(u => u.FullName))
+        {
+            var roles = await _userManager.GetRolesAsync(u);
+            result.Add(new { u.Id, u.FullName, u.Email, u.Phone, u.IsActive, u.CreatedAt, Roles = roles });
+        }
+        return Ok(ApiResponseDto<object>.Ok(result));
     }
 
     [HttpPost("staff/{userId}/assign-role")]
@@ -234,7 +227,6 @@ public class AdminController : ControllerBase
 }
 
 public class ResetPasswordDto { public string NewPassword { get; set; } = string.Empty; }
-public class AddCreditDto { public decimal Amount { get; set; } }
 public class AdjustBalanceDto
 {
     public decimal Amount { get; set; }

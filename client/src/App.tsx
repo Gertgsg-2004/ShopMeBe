@@ -67,7 +67,7 @@ export default function App() {
       </Route>
 
       {/* POS - standalone fullscreen */}
-      <Route path="/pos" element={<ProtectedRoute adminOnly><PosPage /></ProtectedRoute>} />
+      <Route path="/pos" element={<ProtectedRoute roles={['Admin']}><PosPage /></ProtectedRoute>} />
 
       {/* Admin routes */}
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>

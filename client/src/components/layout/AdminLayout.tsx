@@ -10,18 +10,18 @@ import { logout } from '../../store/authSlice'
 import api from '../../services/api'
 
 const navItems = [
-  { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { path: '/admin/san-pham', icon: Package, label: 'Sản phẩm' },
-  { path: '/admin/danh-muc', icon: FolderOpen, label: 'Danh mục' },
-  { path: '/admin/don-hang', icon: ShoppingBag, label: 'Đơn hàng' },
-  { path: '/admin/khach-hang', icon: Users, label: 'Khách hàng' },
-  { path: '/admin/khuyen-mai', icon: Tag, label: 'Khuyến mãi' },
-  { path: '/admin/kho-hang', icon: Warehouse, label: 'Kho hàng' },
-  { path: '/admin/nha-cung-cap', icon: Truck, label: 'Nhà cung cấp' },
-  { path: '/admin/tai-chinh', icon: DollarSign, label: 'Tài chính' },
-  { path: '/admin/bao-cao', icon: BarChart2, label: 'Báo cáo' },
-  { path: '/admin/thong-bao', icon: Bell, label: 'Thông báo' },
-  { path: '/admin/nhan-vien', icon: Shield, label: 'Nhân viên' },
+  { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true, roles: ['Admin'] },
+  { path: '/admin/san-pham', icon: Package, label: 'Sản phẩm', roles: ['Admin', 'Kho'] },
+  { path: '/admin/danh-muc', icon: FolderOpen, label: 'Danh mục', roles: ['Admin'] },
+  { path: '/admin/don-hang', icon: ShoppingBag, label: 'Đơn hàng', roles: ['Admin', 'CSKH', 'Kho'] },
+  { path: '/admin/khach-hang', icon: Users, label: 'Khách hàng', roles: ['Admin', 'CSKH'] },
+  { path: '/admin/khuyen-mai', icon: Tag, label: 'Khuyến mãi', roles: ['Admin'] },
+  { path: '/admin/kho-hang', icon: Warehouse, label: 'Kho hàng', roles: ['Admin', 'Kho'] },
+  { path: '/admin/nha-cung-cap', icon: Truck, label: 'Nhà cung cấp', roles: ['Admin'] },
+  { path: '/admin/tai-chinh', icon: DollarSign, label: 'Tài chính', roles: ['Admin', 'Ketoan'] },
+  { path: '/admin/bao-cao', icon: BarChart2, label: 'Báo cáo', roles: ['Admin', 'Ketoan'] },
+  { path: '/admin/thong-bao', icon: Bell, label: 'Thông báo', roles: ['Admin'] },
+  { path: '/admin/nhan-vien', icon: Shield, label: 'Nhân viên', roles: ['Admin'] },
 ]
 
 export default function AdminLayout() {
@@ -30,7 +30,8 @@ export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const { user } = useAppSelector((s) => s.auth)
+  const { user, roles } = useAppSelector((s) => s.auth)
+  const visibleNavItems = navItems.filter(item => item.roles.some(r => roles.includes(r)))
 
   const handleLogout = () => {
     dispatch(logout())
@@ -42,6 +43,13 @@ export default function AdminLayout() {
       if (res.data?.data) setUnreadCount(res.data.data.unread)
     }).catch(() => {})
   }, [location.pathname])
+
+  // Staff without Admin role land on their first allowed page instead of the Admin-only dashboard
+  useEffect(() => {
+    if (location.pathname === '/admin' && !roles.includes('Admin') && visibleNavItems.length > 0) {
+      navigate(visibleNavItems[0].path, { replace: true })
+    }
+  }, [location.pathname, roles])
 
   const currentLabel = navItems.find(n =>
     n.exact ? location.pathname === n.path : location.pathname === n.path || location.pathname.startsWith(n.path + '/')
@@ -63,7 +71,7 @@ export default function AdminLayout() {
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = item.exact
               ? location.pathname === item.path
               : location.pathname === item.path || location.pathname.startsWith(item.path + '/')
@@ -84,11 +92,13 @@ export default function AdminLayout() {
         </nav>
 
         <div className="p-3 border-t border-gray-100 space-y-0.5">
-          <a href="/pos" target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors w-full">
-            <ShoppingCart size={18} className="text-primary-500" />
-            {sidebarOpen && <span>Bán tại quầy</span>}
-          </a>
+          {roles.includes('Admin') && (
+            <a href="/pos" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors w-full">
+              <ShoppingCart size={18} className="text-primary-500" />
+              {sidebarOpen && <span>Bán tại quầy</span>}
+            </a>
+          )}
           <button onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors w-full">
             <LogOut size={18} />

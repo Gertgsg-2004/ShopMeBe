@@ -34,10 +34,10 @@ public class NotificationsController : ControllerBase
             .Take(50)
             .ToListAsync();
 
-        var readIds = await _db.NotificationReads
+        var readIds = (await _db.NotificationReads
             .Where(r => r.UserId == uid)
             .Select(r => r.NotificationId)
-            .ToHashSetAsync();
+            .ToListAsync()).ToHashSet();
 
         var result = notifications.Select(n => new
         {
@@ -85,7 +85,7 @@ public class NotificationsController : ControllerBase
             .Where(n => n.IsActive && (n.Type == "System" || (n.Type == "Personal" && n.TargetUserId == uid) || n.Type == "Group"))
             .Select(n => n.Id).ToListAsync();
 
-        var readIds = await _db.NotificationReads.Where(r => r.UserId == uid).Select(r => r.NotificationId).ToHashSetAsync();
+        var readIds = (await _db.NotificationReads.Where(r => r.UserId == uid).Select(r => r.NotificationId).ToListAsync()).ToHashSet();
         var toAdd = notifIds.Where(id => !readIds.Contains(id))
             .Select(id => new NotificationRead { NotificationId = id, UserId = uid });
 

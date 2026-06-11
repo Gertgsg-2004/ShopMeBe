@@ -4,6 +4,7 @@ using ShopMeBe.Core.DTOs;
 using ShopMeBe.Core.DTOs.Product;
 using ShopMeBe.Core.Entities;
 using ShopMeBe.Core.Interfaces;
+using ShopMeBe.Infrastructure.Data;
 
 namespace ShopMeBe.API.Controllers;
 
@@ -13,11 +14,13 @@ public class CategoriesController : ControllerBase
 {
     private readonly ICategoryRepository _categoryRepo;
     private readonly IFileService _fileService;
+    private readonly ShopMeBe.Infrastructure.Data.ApplicationDbContext _context;
 
-    public CategoriesController(ICategoryRepository categoryRepo, IFileService fileService)
+    public CategoriesController(ICategoryRepository categoryRepo, IFileService fileService, ShopMeBe.Infrastructure.Data.ApplicationDbContext context)
     {
         _categoryRepo = categoryRepo;
         _fileService = fileService;
+        _context = context;
     }
 
     [HttpGet]
@@ -70,27 +73,22 @@ public class CategoriesController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ApiResponseDto<CategoryDto>>> Update(int id, [FromForm] CategoryCreateDto dto)
     {
-        if (!await _categoryRepo.ExistsAsync(id))
+        var category = await _context.Categories.FindAsync(id);
+        if (category == null)
             return NotFound(ApiResponseDto<CategoryDto>.Fail("Không tìm thấy danh mục"));
 
-        var existing = await _categoryRepo.GetByIdAsync(id);
-        var category = new Category
-        {
-            Id = id,
-            Name = dto.Name,
-            Slug = dto.Name.ToLower().Replace(" ", "-"),
-            Description = dto.Description,
-            ParentId = dto.ParentId,
-            SortOrder = dto.SortOrder,
-            IsActive = dto.IsActive,
-            ImageUrl = existing!.ImageUrl
-        };
+        category.Name = dto.Name;
+        category.Slug = dto.Name.ToLower().Replace(" ", "-");
+        category.Description = dto.Description;
+        category.ParentId = dto.ParentId;
+        category.SortOrder = dto.SortOrder;
+        category.IsActive = dto.IsActive;
 
         if (dto.Image != null && _fileService.IsValidImage(dto.Image))
             category.ImageUrl = await _fileService.UploadImageAsync(dto.Image, "categories");
 
-        var updated = await _categoryRepo.UpdateAsync(category);
-        var result = await _categoryRepo.GetByIdAsync(updated.Id);
+        await _context.SaveChangesAsync();
+        var result = await _categoryRepo.GetByIdAsync(id);
         return Ok(ApiResponseDto<CategoryDto>.Ok(result!, "Cập nhật danh mục thành công"));
     }
 

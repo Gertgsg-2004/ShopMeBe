@@ -26,6 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<InventoryCheck> InventoryChecks => Set<InventoryCheck>();
     public DbSet<InventoryCheckItem> InventoryCheckItems => Set<InventoryCheckItem>();
     public DbSet<PosSession> PosSessions => Set<PosSession>();
+    public DbSet<WalletTopUp> WalletTopUps => Set<WalletTopUp>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -268,6 +269,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(x => x.CashierId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // WalletTopUp
+        builder.Entity<WalletTopUp>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ApplicationUser wallet
+        builder.Entity<ApplicationUser>(e =>
+        {
+            e.Property(x => x.WalletBalance).HasColumnType("decimal(18,2)");
         });
 
         // Seed data

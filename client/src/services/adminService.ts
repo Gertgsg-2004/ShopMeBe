@@ -173,6 +173,16 @@ export const adminService = {
     return data
   },
 
+  async resetCustomerPassword(userId: string, newPassword: string): Promise<ApiResponse<object>> {
+    const { data } = await api.post<ApiResponse<object>>(`/admin/customers/${userId}/reset-password`, { newPassword })
+    return data
+  },
+
+  async addCustomerCredit(userId: string, amount: number): Promise<ApiResponse<{ walletBalance: number }>> {
+    const { data } = await api.post<ApiResponse<{ walletBalance: number }>>(`/admin/customers/${userId}/add-credit`, { amount })
+    return data
+  },
+
   async getAllOrders(page = 1, pageSize = 20): Promise<ApiResponse<PagedResult<Order>>> {
     const { data } = await api.get<ApiResponse<PagedResult<Order>>>(`/orders/all?page=${page}&pageSize=${pageSize}`)
     return data

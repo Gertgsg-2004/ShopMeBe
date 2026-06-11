@@ -211,4 +211,5 @@ export interface Customer {
   createdAt: string
   totalOrders: number
   totalSpent: number
+  walletBalance: number
 }

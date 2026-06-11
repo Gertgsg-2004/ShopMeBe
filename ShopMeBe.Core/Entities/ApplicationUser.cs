@@ -10,6 +10,7 @@ public class ApplicationUser : IdentityUser
     public string? Phone { get; set; }
     public DateTime? DateOfBirth { get; set; }
     public bool IsActive { get; set; } = true;
+    public decimal WalletBalance { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public ICollection<Order> Orders { get; set; } = new List<Order>();
     public ICollection<Review> Reviews { get; set; } = new List<Review>();

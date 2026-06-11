@@ -16,6 +16,7 @@ import ProfilePage from './pages/ProfilePage'
 import OrdersPage from './pages/OrdersPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import SearchPage from './pages/SearchPage'
+import WalletPage from './pages/WalletPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 // Admin pages
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/thanh-toan" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
         <Route path="/dat-hang-thanh-cong/:id" element={<ProtectedRoute><OrderSuccessPage /></ProtectedRoute>} />
         <Route path="/tai-khoan" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/vi-cua-toi" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
         <Route path="/don-hang" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
         <Route path="/don-hang/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
         <Route path="/thanh-toan/thanh-cong" element={<PaymentSuccessPage />} />

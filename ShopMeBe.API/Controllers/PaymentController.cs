@@ -82,10 +82,23 @@ public class PaymentController : ControllerBase
         bool isValid = secureHash != null && checkHash.Equals(secureHash, StringComparison.OrdinalIgnoreCase);
         bool isPaid = isValid && queryParams.GetValueOrDefault("vnp_ResponseCode") == "00";
 
+        bool isTopUp = false;
         if (isPaid && queryParams.TryGetValue("vnp_TxnRef", out var txnRef))
         {
             var parts = txnRef.Split('_');
-            if (parts.Length > 0 && int.TryParse(parts[0], out var orderId))
+            if (parts.Length > 0 && parts[0].StartsWith("W") && int.TryParse(parts[0][1..], out var topUpId))
+            {
+                isTopUp = true;
+                var topUp = await _db.WalletTopUps.Include(t => t.User).FirstOrDefaultAsync(t => t.Id == topUpId);
+                if (topUp != null && !topUp.IsCompleted && topUp.User != null)
+                {
+                    topUp.IsCompleted = true;
+                    topUp.CompletedAt = DateTime.UtcNow;
+                    topUp.User.WalletBalance += topUp.Amount;
+                    await _db.SaveChangesAsync();
+                }
+            }
+            else if (parts.Length > 0 && int.TryParse(parts[0], out var orderId))
             {
                 var order = await _db.Orders.FindAsync(orderId);
                 if (order != null && order.Status == OrderStatus.Pending)
@@ -96,11 +109,15 @@ public class PaymentController : ControllerBase
                 }
             }
         }
+        else if (queryParams.TryGetValue("vnp_TxnRef", out var failedRef) && failedRef.StartsWith("W"))
+        {
+            isTopUp = true;
+        }
 
         var frontendUrl = vnpConfig["FrontendUrl"] ?? "http://localhost:5173";
-        var redirectUrl = isPaid
-            ? $"{frontendUrl}/thanh-toan/thanh-cong?method=vnpay"
-            : $"{frontendUrl}/thanh-toan/that-bai?method=vnpay&code={queryParams.GetValueOrDefault("vnp_ResponseCode")}";
+        var successUrl = isTopUp ? $"{frontendUrl}/vi-cua-toi?topup=success" : $"{frontendUrl}/thanh-toan/thanh-cong?method=vnpay";
+        var failUrl = isTopUp ? $"{frontendUrl}/vi-cua-toi?topup=failed" : $"{frontendUrl}/thanh-toan/that-bai?method=vnpay&code={queryParams.GetValueOrDefault("vnp_ResponseCode")}";
+        var redirectUrl = isPaid ? successUrl : failUrl;
 
         return Redirect(redirectUrl);
     }

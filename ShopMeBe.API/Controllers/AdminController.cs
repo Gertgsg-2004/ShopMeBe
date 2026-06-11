@@ -62,7 +62,8 @@ public class AdminController : ControllerBase
             IsActive = u.IsActive,
             CreatedAt = u.CreatedAt,
             TotalOrders = orderStats.GetValueOrDefault(u.Id)?.Count ?? 0,
-            TotalSpent = orderStats.GetValueOrDefault(u.Id)?.Total ?? 0
+            TotalSpent = orderStats.GetValueOrDefault(u.Id)?.Total ?? 0,
+            WalletBalance = u.WalletBalance
         }).ToList();
 
         return Ok(ApiResponseDto<List<CustomerDto>>.Ok(customers));
@@ -79,4 +80,33 @@ public class AdminController : ControllerBase
         var status = user.IsActive ? "kích hoạt" : "khóa";
         return Ok(ApiResponseDto<object>.Ok(new { user.IsActive }, $"Đã {status} tài khoản"));
     }
+
+    [HttpPost("customers/{userId}/reset-password")]
+    public async Task<ActionResult<ApiResponseDto<object>>> ResetPassword(string userId, [FromBody] ResetPasswordDto dto)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy người dùng"));
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, dto.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(ApiResponseDto<object>.Fail(string.Join(", ", result.Errors.Select(e => e.Description))));
+
+        return Ok(ApiResponseDto<object>.Ok(new { }, "Đặt lại mật khẩu thành công"));
+    }
+
+    [HttpPost("customers/{userId}/add-credit")]
+    public async Task<ActionResult<ApiResponseDto<object>>> AddCredit(string userId, [FromBody] AddCreditDto dto)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy người dùng"));
+        if (dto.Amount <= 0) return BadRequest(ApiResponseDto<object>.Fail("Số tiền phải lớn hơn 0"));
+
+        user.WalletBalance += dto.Amount;
+        await _userManager.UpdateAsync(user);
+        return Ok(ApiResponseDto<object>.Ok(new { user.WalletBalance }, $"Đã cộng {dto.Amount:N0}đ vào tài khoản"));
+    }
 }
+
+public class ResetPasswordDto { public string NewPassword { get; set; } = string.Empty; }
+public class AddCreditDto { public decimal Amount { get; set; } }

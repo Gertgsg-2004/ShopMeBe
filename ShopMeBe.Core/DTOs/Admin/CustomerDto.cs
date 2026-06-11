@@ -12,4 +12,5 @@ public class CustomerDto
     public DateTime CreatedAt { get; set; }
     public int TotalOrders { get; set; }
     public decimal TotalSpent { get; set; }
+    public decimal WalletBalance { get; set; }
 }

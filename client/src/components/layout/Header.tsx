@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingCart, Search, User, Menu, X, Heart, ChevronDown, LogOut, Package, Settings, ScanLine } from 'lucide-react'
+import { ShoppingCart, Search, User, Menu, X, Heart, ChevronDown, LogOut, Package, Settings, ScanLine, Wallet } from 'lucide-react'
 import BarcodeScanner from '../barcode/BarcodeScanner'
 import { useAppSelector } from '../../hooks/useAppSelector'
 import { useAppDispatch } from '../../hooks/useAppSelector'
@@ -130,6 +130,10 @@ export default function Header() {
                     <Link to="/don-hang" onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-pink-50 transition-colors">
                       <Package size={16} className="text-primary-400" /> Đơn hàng của tôi
+                    </Link>
+                    <Link to="/vi-cua-toi" onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-pink-50 transition-colors">
+                      <Wallet size={16} className="text-primary-400" /> Ví của tôi
                     </Link>
                     {roles.includes('Admin') && (
                       <Link to="/admin" onClick={() => setUserMenuOpen(false)}

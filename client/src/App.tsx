@@ -18,6 +18,7 @@ import OrderDetailPage from './pages/OrderDetailPage'
 import SearchPage from './pages/SearchPage'
 import WalletPage from './pages/WalletPage'
 import NotFoundPage from './pages/NotFoundPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 
 // Admin pages
 import DashboardPage from './pages/admin/DashboardPage'
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/gio-hang" element={<CartPage />} />
         <Route path="/dang-nhap" element={<LoginPage />} />
         <Route path="/dang-ky" element={<RegisterPage />} />
+        <Route path="/quen-mat-khau" element={<ForgotPasswordPage />} />
         <Route path="/thanh-toan" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
         <Route path="/dat-hang-thanh-cong/:id" element={<ProtectedRoute><OrderSuccessPage /></ProtectedRoute>} />
         <Route path="/tai-khoan" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

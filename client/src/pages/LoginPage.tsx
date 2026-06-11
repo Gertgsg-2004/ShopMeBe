@@ -82,9 +82,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-4 text-center text-sm">
-            <span className="text-gray-600">Chưa có tài khoản? </span>
-            <Link to="/dang-ky" className="text-primary-600 font-medium hover:underline">Đăng ký ngay</Link>
+          <div className="mt-4 text-center text-sm space-y-2">
+            <div>
+              <span className="text-gray-600">Chưa có tài khoản? </span>
+              <Link to="/dang-ky" className="text-primary-600 font-medium hover:underline">Đăng ký ngay</Link>
+            </div>
+            <div>
+              <Link to="/quen-mat-khau" className="text-gray-400 text-xs hover:text-primary-600 hover:underline">Quên mật khẩu?</Link>
+            </div>
           </div>
 
           <div className="mt-3 text-center">

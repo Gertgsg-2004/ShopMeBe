@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ShopMeBe.Core.DTOs;
 using ShopMeBe.Core.DTOs.Auth;
 using ShopMeBe.Core.Entities;
 using ShopMeBe.Core.Interfaces;
+using ShopMeBe.Infrastructure.Data;
 using System.Security.Claims;
 
 namespace ShopMeBe.API.Controllers;
@@ -16,15 +18,18 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITokenService _tokenService;
+    private readonly ApplicationDbContext _context;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ITokenService tokenService)
+        ITokenService tokenService,
+        ApplicationDbContext context)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
+        _context = context;
     }
 
     [HttpPost("register")]
@@ -37,6 +42,13 @@ public class AuthController : ControllerBase
         var existingUser = await _userManager.FindByEmailAsync(dto.Email);
         if (existingUser != null)
             return BadRequest(ApiResponseDto<AuthResponseDto>.Fail("Email đã được sử dụng"));
+
+        if (!string.IsNullOrWhiteSpace(dto.Phone))
+        {
+            var phoneExists = _userManager.Users.Any(u => u.Phone == dto.Phone);
+            if (phoneExists)
+                return BadRequest(ApiResponseDto<AuthResponseDto>.Fail("Số điện thoại đã được sử dụng"));
+        }
 
         var user = new ApplicationUser
         {
@@ -54,19 +66,16 @@ public class AuthController : ControllerBase
 
         await _userManager.AddToRoleAsync(user, "Customer");
 
-        var token = await _tokenService.GenerateAccessTokenAsync(user);
-        var roles = await _userManager.GetRolesAsync(user);
-
         return Ok(ApiResponseDto<AuthResponseDto>.Ok(new AuthResponseDto
         {
-            Token = token,
-            RefreshToken = _tokenService.GenerateRefreshToken(),
-            Expiration = DateTime.UtcNow.AddHours(24),
+            Token = "",
+            RefreshToken = "",
+            Expiration = DateTime.UtcNow,
             UserId = user.Id,
             Email = user.Email!,
             FullName = user.FullName,
-            Roles = roles
-        }, "Đăng ký thành công"));
+            Roles = new List<string>()
+        }, "Đăng ký thành công! Vui lòng đăng nhập để tiếp tục."));
     }
 
     [HttpPost("login")]
@@ -152,4 +161,28 @@ public class AuthController : ControllerBase
 
         return Ok(ApiResponseDto<object>.Ok(new { }, "Đổi mật khẩu thành công"));
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult<ApiResponseDto<object>>> ForgotPassword([FromBody] ForgotPasswordRequestDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Phone))
+            return BadRequest(ApiResponseDto<object>.Fail("Vui lòng nhập số điện thoại"));
+
+        var user = _userManager.Users.FirstOrDefault(u => u.Phone == dto.Phone);
+        if (user == null)
+            return BadRequest(ApiResponseDto<object>.Fail("Số điện thoại không tồn tại trong hệ thống"));
+
+        var existing = await _context.PasswordResetRequests
+            .Where(r => r.UserId == user.Id && r.Status == "Pending")
+            .FirstOrDefaultAsync();
+        if (existing != null)
+            return Ok(ApiResponseDto<object>.Ok(new { }, "Yêu cầu đặt lại mật khẩu đã được gửi, vui lòng chờ admin xử lý"));
+
+        _context.PasswordResetRequests.Add(new PasswordResetRequest { UserId = user.Id });
+        await _context.SaveChangesAsync();
+
+        return Ok(ApiResponseDto<object>.Ok(new { }, "Yêu cầu đã được gửi. Admin sẽ xử lý và thông báo qua số điện thoại của bạn."));
+    }
 }
+
+public class ForgotPasswordRequestDto { public string Phone { get; set; } = string.Empty; }

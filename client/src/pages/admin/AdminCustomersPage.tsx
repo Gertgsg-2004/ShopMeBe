@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UserCheck, UserX, Search, KeyRound, Wallet, User, TrendingUp, X } from 'lucide-react'
+import { UserCheck, UserX, Search, KeyRound, Wallet, User, TrendingUp, X, ShieldAlert, CheckCircle2 } from 'lucide-react'
 import { adminService } from '../../services/adminService'
 import api from '../../services/api'
 import { useAppSelector } from '../../hooks/useAppSelector'
@@ -29,6 +29,17 @@ const TYPE_LABELS: Record<string, string> = {
   TopUp: 'Nạp tiền', AdminCredit: 'Admin cộng', AdminDebit: 'Admin trừ', Purchase: 'Mua hàng'
 }
 
+interface PasswordResetReq {
+  id: number
+  status: string
+  createdAt: string
+  completedAt?: string
+  userId: string
+  fullName: string
+  phone?: string
+  email?: string
+}
+
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
@@ -42,6 +53,10 @@ export default function AdminCustomersPage() {
   const [profileTarget, setProfileTarget] = useState<CustomerProfile | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [tab, setTab] = useState<'customers' | 'password-requests'>('customers')
+  const [passwordResets, setPasswordResets] = useState<PasswordResetReq[]>([])
+  const [resetNewPwd, setResetNewPwd] = useState('')
+  const [processingReset, setProcessingReset] = useState<number | null>(null)
   const { roles } = useAppSelector((s) => s.auth)
   const isAdmin = roles.includes('Admin')
 
@@ -54,6 +69,37 @@ export default function AdminCustomersPage() {
   }
 
   useEffect(() => { fetchCustomers() }, [])
+
+  const fetchPasswordResets = async () => {
+    try {
+      const { data } = await api.get('/admin/password-reset-requests')
+      if (data.data) setPasswordResets(data.data)
+    } catch {}
+  }
+
+  useEffect(() => {
+    if (tab === 'password-requests') fetchPasswordResets()
+  }, [tab])
+
+  const handleCompleteReset = async (id: number) => {
+    if (!resetNewPwd || resetNewPwd.length < 6) { toast.error('Mật khẩu mới phải ít nhất 6 ký tự'); return }
+    setProcessingReset(id)
+    try {
+      const { data } = await api.post(`/admin/password-reset-requests/${id}/complete`, { newPassword: resetNewPwd })
+      toast.success(data.message || 'Đã đặt lại mật khẩu')
+      setResetNewPwd('')
+      fetchPasswordResets()
+    } catch (err: any) { toast.error(err.response?.data?.message || 'Lỗi') }
+    finally { setProcessingReset(null) }
+  }
+
+  const handleDeleteReset = async (id: number) => {
+    try {
+      await api.delete(`/admin/password-reset-requests/${id}`)
+      toast.success('Đã xóa yêu cầu')
+      fetchPasswordResets()
+    } catch {}
+  }
 
   const openProfile = async (c: Customer) => {
     setProfileLoading(true)
@@ -112,13 +158,98 @@ export default function AdminCustomersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-800">Quản lý khách hàng</h2>
-          <p className="text-sm text-gray-500 mt-1">{customers.length} khách hàng</p>
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl w-fit">
+        <button onClick={() => setTab('customers')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === 'customers' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          Danh sách khách hàng
+        </button>
+        <button onClick={() => setTab('password-requests')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${tab === 'password-requests' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+          <ShieldAlert size={14} /> Yêu cầu quên mật khẩu
+          {passwordResets.filter(r => r.status === 'Pending').length > 0 && (
+            <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center ml-1">
+              {passwordResets.filter(r => r.status === 'Pending').length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Password reset requests tab */}
+      {tab === 'password-requests' && (
+        <div className="card overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  {['Khách hàng', 'Email', 'SĐT', 'Trạng thái', 'Thời gian', 'Xử lý'].map(h => (
+                    <th key={h} className="text-left py-3 px-4 text-gray-500 font-medium whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {passwordResets.map(r => (
+                  <tr key={r.id} className="hover:bg-gray-50">
+                    <td className="py-3 px-4 font-medium text-gray-800">{r.fullName}</td>
+                    <td className="py-3 px-4 text-gray-500 text-xs">{r.email || '-'}</td>
+                    <td className="py-3 px-4 text-gray-600">{r.phone || '-'}</td>
+                    <td className="py-3 px-4">
+                      {r.status === 'Pending' ? (
+                        <span className="text-amber-600 text-xs font-medium">Chờ xử lý</span>
+                      ) : (
+                        <span className="text-green-600 text-xs font-medium flex items-center gap-1"><CheckCircle2 size={12} /> Đã xử lý</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-gray-400 text-xs">{new Date(r.createdAt).toLocaleString('vi-VN')}</td>
+                    <td className="py-3 px-4">
+                      {r.status === 'Pending' ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            placeholder="Mật khẩu mới"
+                            className="input-field text-xs py-1 w-32"
+                            onFocus={() => setProcessingReset(r.id)}
+                            onChange={e => setResetNewPwd(e.target.value)}
+                            value={processingReset === r.id ? resetNewPwd : ''}
+                          />
+                          <button onClick={() => handleCompleteReset(r.id)}
+                            className="px-3 py-1 text-xs bg-primary-500 text-white rounded-lg hover:bg-primary-600">
+                            Đặt lại
+                          </button>
+                          {isAdmin && (
+                            <button onClick={() => handleDeleteReset(r.id)}
+                              className="px-3 py-1 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200">
+                              Xóa
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        isAdmin && (
+                          <button onClick={() => handleDeleteReset(r.id)}
+                            className="px-3 py-1 text-xs bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200">
+                            Xóa
+                          </button>
+                        )
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {passwordResets.length === 0 && (
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">Không có yêu cầu quên mật khẩu nào</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab === 'customers' && <>
       <div className="card mb-4">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -276,6 +407,7 @@ export default function AdminCustomersPage() {
           </div>
         </div>
       )}
+      </>}
 
       {/* Reset password modal */}
       {resetTarget && (

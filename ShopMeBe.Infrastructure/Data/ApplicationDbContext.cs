@@ -30,6 +30,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationRead> NotificationReads => Set<NotificationRead>();
+    public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -215,12 +216,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasOne(x => x.Notification).WithMany(x => x.ReadBy).HasForeignKey(x => x.NotificationId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<PasswordResetRequest>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<Category>().HasData(
             new Category { Id = 1, Name = "Đồ bà bầu", Slug = "do-ba-bau", Description = "Thời trang và phụ kiện cho bà bầu", SortOrder = 1, IsActive = true },
             new Category { Id = 2, Name = "Đồ sơ sinh", Slug = "do-so-sinh", Description = "Sản phẩm dành cho trẻ sơ sinh", SortOrder = 2, IsActive = true },
             new Category { Id = 3, Name = "Đồ chơi", Slug = "do-choi", Description = "Đồ chơi giáo dục cho trẻ", SortOrder = 3, IsActive = true },
             new Category { Id = 4, Name = "Sữa và thực phẩm", Slug = "sua-va-thuc-pham", Description = "Sữa bột và thực phẩm bổ sung", SortOrder = 4, IsActive = true },
-            new Category { Id = 5, Name = "Phụ kiện", Slug = "phu-kien", Description = "Phụ kiện mẹ và bé", SortOrder = 5, IsActive = true }
+            new Category { Id = 5, Name = "Phụ kiện", Slug = "phu-kien", Description = "Phụ kiện mẹ và bé", SortOrder = 5, IsActive = true },
+            new Category { Id = 6, Name = "Bỉm", Slug = "bim", Description = "Bỉm tã cho bé các loại", SortOrder = 6, IsActive = true },
+            new Category { Id = 7, Name = "Quần áo thu đông", Slug = "quan-ao-thu-dong", Description = "Quần áo thu đông ấm áp cho mẹ và bé", SortOrder = 7, IsActive = true }
         );
     }
 }

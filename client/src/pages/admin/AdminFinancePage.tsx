@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DollarSign, ArrowUpCircle, ArrowDownCircle, Wallet, Search } from 'lucide-react'
+import { DollarSign, ArrowUpCircle, ArrowDownCircle, Wallet, Search, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import api from '../../services/api'
 import { formatCurrency } from '../../utils/format'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -36,6 +36,18 @@ interface Summary {
   totalWalletBalance: number
 }
 
+interface TopUpRequest {
+  id: number
+  amount: number
+  isCompleted: boolean
+  createdAt: string
+  completedAt?: string
+  userId: string
+  fullName: string
+  phone?: string
+  transferCode: string
+}
+
 const TYPE_LABELS: Record<string, string> = {
   TopUp: 'Nạp tiền',
   AdminCredit: 'Admin cộng',
@@ -53,19 +65,22 @@ const TYPE_COLORS: Record<string, string> = {
 }
 
 export default function AdminFinancePage() {
-  const [tab, setTab] = useState<'summary' | 'payments' | 'wallet'>('summary')
+  const [tab, setTab] = useState<'summary' | 'payments' | 'wallet' | 'topups'>('summary')
   const [summary, setSummary] = useState<Summary | null>(null)
   const [payments, setPayments] = useState<PaymentItem[]>([])
   const [walletTxs, setWalletTxs] = useState<WalletTx[]>([])
+  const [topUpRequests, setTopUpRequests] = useState<TopUpRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [typeFilter, setTypeFilter] = useState('')
   const [searchFilter, setSearchFilter] = useState('')
+  const [pendingOnly, setPendingOnly] = useState(true)
 
   useEffect(() => { loadSummary() }, [])
   useEffect(() => {
     if (tab === 'payments') loadPayments()
     if (tab === 'wallet') loadWallet()
-  }, [tab, typeFilter])
+    if (tab === 'topups') loadTopUps()
+  }, [tab, typeFilter, pendingOnly])
 
   const loadSummary = async () => {
     setLoading(true)
@@ -92,6 +107,31 @@ export default function AdminFinancePage() {
     } finally { setLoading(false) }
   }
 
+  const loadTopUps = async () => {
+    setLoading(true)
+    try {
+      const { data } = await api.get(`/admin/topup-requests?pendingOnly=${pendingOnly}`)
+      if (data.data) setTopUpRequests(data.data)
+    } finally { setLoading(false) }
+  }
+
+  const approveTopUp = async (id: number) => {
+    try {
+      const { data } = await api.post(`/admin/topup-requests/${id}/approve`)
+      toast.success(data.message || 'Đã duyệt nạp tiền')
+      loadTopUps()
+    } catch (err: any) { toast.error(err.response?.data?.message || 'Lỗi') }
+  }
+
+  const rejectTopUp = async (id: number) => {
+    if (!confirm('Từ chối yêu cầu nạp tiền này?')) return
+    try {
+      await api.delete(`/admin/topup-requests/${id}`)
+      toast.success('Đã từ chối yêu cầu')
+      loadTopUps()
+    } catch (err: any) { toast.error(err.response?.data?.message || 'Lỗi') }
+  }
+
   const filteredWallet = walletTxs.filter(t =>
     !searchFilter || t.userName?.toLowerCase().includes(searchFilter.toLowerCase())
   )
@@ -100,6 +140,7 @@ export default function AdminFinancePage() {
     { id: 'summary', label: 'Tổng quan' },
     { id: 'payments', label: 'Lịch sử thanh toán' },
     { id: 'wallet', label: 'Giao dịch ví' },
+    { id: 'topups', label: 'Yêu cầu nạp tiền' },
   ] as const
 
   return (
@@ -217,6 +258,66 @@ export default function AdminFinancePage() {
                       <td className="py-3 px-4 text-gray-400 text-xs whitespace-nowrap">{new Date(t.createdAt).toLocaleString('vi-VN')}</td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Top-up requests */}
+      {tab === 'topups' && !loading && (
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input type="checkbox" checked={pendingOnly} onChange={e => setPendingOnly(e.target.checked)} className="rounded" />
+              Chỉ hiện chờ duyệt
+            </label>
+          </div>
+          <div className="card overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    {['#', 'Khách hàng', 'SĐT', 'Mã ND CK', 'Số tiền', 'Trạng thái', 'Thời gian', 'Hành động'].map(h => (
+                      <th key={h} className="text-left py-3 px-4 text-gray-500 font-medium whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {topUpRequests.map(r => (
+                    <tr key={r.id} className="hover:bg-gray-50">
+                      <td className="py-3 px-4 text-gray-400 text-xs">#{r.id}</td>
+                      <td className="py-3 px-4 font-medium text-gray-800">{r.fullName}</td>
+                      <td className="py-3 px-4 text-gray-600">{r.phone || '-'}</td>
+                      <td className="py-3 px-4 font-mono text-primary-700 font-bold">{r.transferCode}</td>
+                      <td className="py-3 px-4 font-semibold text-green-600">{formatCurrency(r.amount)}</td>
+                      <td className="py-3 px-4">
+                        {r.isCompleted ? (
+                          <span className="flex items-center gap-1 text-green-600 text-xs"><CheckCircle2 size={12} /> Đã duyệt</span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-amber-600 text-xs"><Clock size={12} /> Chờ duyệt</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-gray-400 text-xs whitespace-nowrap">{new Date(r.createdAt).toLocaleString('vi-VN')}</td>
+                      <td className="py-3 px-4">
+                        {!r.isCompleted && (
+                          <div className="flex gap-2">
+                            <button onClick={() => approveTopUp(r.id)}
+                              className="px-3 py-1 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1">
+                              <CheckCircle2 size={12} /> Duyệt
+                            </button>
+                            <button onClick={() => rejectTopUp(r.id)}
+                              className="px-3 py-1 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1">
+                              <XCircle size={12} /> Từ chối
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {topUpRequests.length === 0 && (
+                    <tr><td colSpan={8} className="py-8 text-center text-gray-400">Không có yêu cầu nào</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>

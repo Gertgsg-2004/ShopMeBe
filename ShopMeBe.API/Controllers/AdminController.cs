@@ -224,6 +224,126 @@ public class AdminController : ControllerBase
         await _userManager.RemoveFromRoleAsync(user, role);
         return Ok(ApiResponseDto<object>.Ok(new { }, $"Đã xóa vai trò {role}"));
     }
+
+    // ── Top-up requests ───────────────────────────────────────────────────────
+
+    [HttpGet("topup-requests")]
+    [Authorize(Roles = "Admin,Ketoan")]
+    public async Task<IActionResult> GetTopUpRequests([FromQuery] bool pendingOnly = false)
+    {
+        var q = _context.WalletTopUps.Include(t => t.User).AsQueryable();
+        if (pendingOnly) q = q.Where(t => !t.IsCompleted);
+        var raw = await q.OrderByDescending(t => t.CreatedAt).ToListAsync();
+        var list = raw.Select(t => new
+        {
+            t.Id, t.Amount, t.IsCompleted, t.CreatedAt, t.CompletedAt,
+            UserId = t.UserId,
+            FullName = t.User.FullName,
+            Phone = t.User.Phone,
+            TransferCode = "NAP" + t.UserId[^Math.Min(6, t.UserId.Length)..].ToUpper()
+        }).ToList();
+        return Ok(ApiResponseDto<object>.Ok(list));
+    }
+
+    [HttpPost("topup-requests/{id}/approve")]
+    [Authorize(Roles = "Admin,Ketoan")]
+    public async Task<IActionResult> ApproveTopUp(int id)
+    {
+        var topUp = await _context.WalletTopUps.Include(t => t.User).FirstOrDefaultAsync(t => t.Id == id);
+        if (topUp == null) return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy yêu cầu nạp tiền"));
+        if (topUp.IsCompleted) return BadRequest(ApiResponseDto<object>.Fail("Yêu cầu đã được xử lý"));
+
+        var user = topUp.User;
+        var before = user.WalletBalance;
+        user.WalletBalance += topUp.Amount;
+        topUp.IsCompleted = true;
+        topUp.CompletedAt = DateTime.UtcNow;
+
+        _context.WalletTransactions.Add(new WalletTransaction
+        {
+            UserId = user.Id,
+            Amount = topUp.Amount,
+            BalanceBefore = before,
+            BalanceAfter = user.WalletBalance,
+            Type = "TopUp",
+            Reason = $"Nạp tiền chuyển khoản - Yêu cầu #{topUp.Id}",
+            AdminId = AdminId,
+            Reference = $"TOPUP-{topUp.Id}"
+        });
+        await _context.SaveChangesAsync();
+
+        return Ok(ApiResponseDto<object>.Ok(new { user.WalletBalance }, $"Đã duyệt nạp {topUp.Amount:N0}đ cho {user.FullName}"));
+    }
+
+    [HttpDelete("topup-requests/{id}")]
+    [Authorize(Roles = "Admin,Ketoan")]
+    public async Task<IActionResult> RejectTopUp(int id)
+    {
+        var topUp = await _context.WalletTopUps.FindAsync(id);
+        if (topUp == null) return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy yêu cầu"));
+        if (topUp.IsCompleted) return BadRequest(ApiResponseDto<object>.Fail("Không thể hủy yêu cầu đã được duyệt"));
+        _context.WalletTopUps.Remove(topUp);
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponseDto<object>.Ok(new { }, "Đã từ chối yêu cầu nạp tiền"));
+    }
+
+    // ── Password reset requests ────────────────────────────────────────────────
+
+    [HttpGet("password-reset-requests")]
+    [Authorize(Roles = "Admin,CSKH")]
+    public async Task<IActionResult> GetPasswordResetRequests()
+    {
+        var requests = await _context.PasswordResetRequests
+            .Include(r => r.User)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new
+            {
+                r.Id,
+                r.Status,
+                r.CreatedAt,
+                r.CompletedAt,
+                UserId = r.UserId,
+                FullName = r.User.FullName,
+                Phone = r.User.Phone,
+                Email = r.User.Email
+            })
+            .ToListAsync();
+        return Ok(ApiResponseDto<object>.Ok(requests));
+    }
+
+    [HttpPost("password-reset-requests/{id}/complete")]
+    [Authorize(Roles = "Admin,CSKH")]
+    public async Task<IActionResult> CompletePasswordReset(int id, [FromBody] CompleteResetDto dto)
+    {
+        var req = await _context.PasswordResetRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == id);
+        if (req == null) return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy yêu cầu"));
+        if (req.Status == "Completed") return BadRequest(ApiResponseDto<object>.Fail("Yêu cầu đã được xử lý"));
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(req.User);
+        var result = await _userManager.ResetPasswordAsync(req.User, token, dto.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(ApiResponseDto<object>.Fail(string.Join(", ", result.Errors.Select(e => e.Description))));
+
+        req.Status = "Completed";
+        req.NewPassword = dto.NewPassword;
+        req.AdminId = AdminId;
+        req.CompletedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return Ok(ApiResponseDto<object>.Ok(new { Phone = req.User.Phone, NewPassword = dto.NewPassword },
+            $"Đã đặt lại mật khẩu và thông báo qua SĐT {req.User.Phone}"));
+    }
+
+    [HttpDelete("password-reset-requests/{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeletePasswordResetRequest(int id)
+    {
+        var req = await _context.PasswordResetRequests.FindAsync(id);
+        if (req == null) return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy yêu cầu"));
+        _context.PasswordResetRequests.Remove(req);
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponseDto<object>.Ok(new { }, "Đã xóa yêu cầu"));
+    }
 }
 
 public class ResetPasswordDto { public string NewPassword { get; set; } = string.Empty; }
@@ -233,3 +353,4 @@ public class AdjustBalanceDto
     public string? Reason { get; set; }
 }
 public class AssignRoleDto { public string Role { get; set; } = string.Empty; }
+public class CompleteResetDto { public string NewPassword { get; set; } = string.Empty; }

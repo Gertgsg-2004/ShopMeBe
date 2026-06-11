@@ -1,8 +1,6 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Web;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShopMeBe.Core.DTOs;
@@ -17,12 +15,12 @@ namespace ShopMeBe.API.Controllers;
 public class WalletController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
-    private readonly IConfiguration _config;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public WalletController(ApplicationDbContext db, IConfiguration config)
+    public WalletController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
     {
         _db = db;
-        _config = config;
+        _userManager = userManager;
     }
 
     private string? UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -44,16 +42,29 @@ public class WalletController : ControllerBase
             .Where(t => t.UserId == UserId && t.Type == "TopUp")
             .SumAsync(t => (decimal?)t.Amount) ?? 0;
 
+        // Generate unique transfer code: NAP + last 6 chars of userId
+        var uid = UserId ?? "000000";
+        var transferCode = "NAP" + uid[^Math.Min(6, uid.Length)..].ToUpper();
+
+        // Pending top-up requests
+        var pendingTopUps = await _db.WalletTopUps
+            .Where(t => t.UserId == UserId && !t.IsCompleted)
+            .OrderByDescending(t => t.CreatedAt)
+            .Select(t => new { t.Id, t.Amount, t.CreatedAt })
+            .ToListAsync();
+
         return Ok(ApiResponseDto<object>.Ok(new
         {
             balance = user.WalletBalance,
             totalTopUp,
-            history
+            history,
+            transferCode,
+            pendingTopUps
         }));
     }
 
-    [HttpPost("topup")]
-    public async Task<IActionResult> CreateTopUp([FromBody] TopUpDto dto)
+    [HttpPost("topup-request")]
+    public async Task<IActionResult> CreateTopUpRequest([FromBody] TopUpDto dto)
     {
         if (dto.Amount < 10000)
             return BadRequest(ApiResponseDto<object>.Fail("Số tiền nạp tối thiểu là 10.000đ"));
@@ -63,44 +74,7 @@ public class WalletController : ControllerBase
         _db.WalletTopUps.Add(topUp);
         await _db.SaveChangesAsync();
 
-        var vnpConfig = _config.GetSection("VNPay");
-        string tmnCode = vnpConfig["TmnCode"] ?? "DEMO";
-        string hashSecret = vnpConfig["HashSecret"] ?? "DEMOSECRETKEY";
-        string payUrl = vnpConfig["PayUrl"] ?? "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-        string returnUrl = vnpConfig["ReturnUrl"] ?? $"{Request.Scheme}://{Request.Host}/api/payment/vnpay/return";
-
-        var now = DateTime.UtcNow.AddHours(7);
-        var txnRef = $"W{topUp.Id}_{now:yyyyMMddHHmmss}";
-
-        var vnpParams = new SortedDictionary<string, string>
-        {
-            ["vnp_Version"] = "2.1.0",
-            ["vnp_Command"] = "pay",
-            ["vnp_TmnCode"] = tmnCode,
-            ["vnp_Amount"] = ((long)(dto.Amount * 100)).ToString(),
-            ["vnp_CurrCode"] = "VND",
-            ["vnp_TxnRef"] = txnRef,
-            ["vnp_OrderInfo"] = $"Nap tien vi {topUp.Id}",
-            ["vnp_OrderType"] = "other",
-            ["vnp_Locale"] = "vn",
-            ["vnp_ReturnUrl"] = returnUrl,
-            ["vnp_IpAddr"] = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
-            ["vnp_CreateDate"] = now.ToString("yyyyMMddHHmmss"),
-            ["vnp_ExpireDate"] = now.AddMinutes(15).ToString("yyyyMMddHHmmss"),
-        };
-
-        var queryString = string.Join("&", vnpParams.Select(kv => $"{kv.Key}={HttpUtility.UrlEncode(kv.Value)}"));
-        var signData = string.Join("&", vnpParams.Select(kv => $"{kv.Key}={kv.Value}"));
-        var secureHash = HmacSha512(hashSecret, signData);
-        var paymentUrl = $"{payUrl}?{queryString}&vnp_SecureHash={secureHash}";
-        return Ok(new ApiResponseDto<string> { Success = true, Data = paymentUrl });
-    }
-
-    private static string HmacSha512(string key, string data)
-    {
-        using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(key));
-        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-        return BitConverter.ToString(hash).Replace("-", "").ToLower();
+        return Ok(ApiResponseDto<object>.Ok(new { topUp.Id, topUp.Amount }, "Yêu cầu nạp tiền đã được ghi nhận. Vui lòng chuyển khoản đúng số tiền và nội dung để được xử lý nhanh."));
     }
 }
 

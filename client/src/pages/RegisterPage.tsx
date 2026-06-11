@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
-import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react'
-import { useAppDispatch, useAppSelector } from '../hooks/useAppSelector'
-import { register as registerAction } from '../store/authSlice'
+import { Eye, EyeOff, Mail, Lock, User, Phone, CheckCircle2 } from 'lucide-react'
+import { useAppSelector } from '../hooks/useAppSelector'
+import api from '../services/api'
 import toast from 'react-hot-toast'
 
 interface RegisterForm {
@@ -15,10 +15,12 @@ interface RegisterForm {
 }
 
 export default function RegisterPage() {
-  const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const { isAuthenticated, loading, error } = useAppSelector((s) => s.auth)
+  const { isAuthenticated } = useAppSelector((s) => s.auth)
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>()
 
   useEffect(() => {
@@ -26,17 +28,39 @@ export default function RegisterPage() {
   }, [isAuthenticated, navigate])
 
   const onSubmit = async (data: RegisterForm) => {
-    const result = await dispatch(registerAction({
-      fullName: data.fullName,
-      email: data.email,
-      password: data.password,
-      confirmPassword: data.confirmPassword,
-      phone: data.phone,
-    }))
-    if (registerAction.fulfilled.match(result)) {
-      toast.success('Đăng ký thành công! Chào mừng bạn đến với Shop Mẹ & Bé Ánh Tuyết 🎉')
-      navigate('/')
+    if (data.password !== data.confirmPassword) {
+      setError('Mật khẩu không khớp')
+      return
     }
+    setLoading(true)
+    setError(null)
+    try {
+      await api.post('/auth/register', {
+        fullName: data.fullName,
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        phone: data.phone,
+      })
+      setSuccess(true)
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Đăng ký thất bại')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-gradient-to-br from-pink-50 to-blue-50">
+        <div className="w-full max-w-md text-center">
+          <CheckCircle2 size={64} className="text-green-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Đăng ký thành công!</h1>
+          <p className="text-gray-500 mb-6">Tài khoản đã được tạo. Vui lòng đăng nhập để tiếp tục mua sắm.</p>
+          <Link to="/dang-nhap" className="btn-primary inline-flex">Đăng nhập ngay</Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -73,11 +97,15 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại *</label>
               <div className="relative">
                 <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input {...register('phone')} className="input-field pl-9" placeholder="0901234567" />
+                <input {...register('phone', {
+                  required: 'Số điện thoại là bắt buộc',
+                  pattern: { value: /^(0|\+84)[0-9]{9}$/, message: 'Số điện thoại không hợp lệ' }
+                })} className="input-field pl-9" placeholder="0901234567" />
               </div>
+              {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
             </div>
 
             <div>

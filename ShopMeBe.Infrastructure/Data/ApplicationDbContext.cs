@@ -31,6 +31,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationRead> NotificationReads => Set<NotificationRead>();
     public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
+    public DbSet<ShopSettings> ShopSettings => Set<ShopSettings>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -221,6 +222,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasKey(x => x.Id);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
+
+        builder.Entity<ShopSettings>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Key).IsRequired().HasMaxLength(100);
+            e.HasIndex(x => x.Key).IsUnique();
+        });
+
+        builder.Entity<ShopSettings>().HasData(
+            new ShopSettings { Id = 1, Key = "bank_name", Value = "Vietcombank" },
+            new ShopSettings { Id = 2, Key = "bank_branch", Value = "Chi nhánh Mai Sơn Sơn La" },
+            new ShopSettings { Id = 3, Key = "bank_account_no", Value = "1234567890" },
+            new ShopSettings { Id = 4, Key = "bank_account_name", Value = "Đỗ Thị Ánh Tuyết" },
+            new ShopSettings { Id = 5, Key = "bank_qr_url", Value = "" }
+        );
 
         builder.Entity<Category>().HasData(
             new Category { Id = 1, Name = "Đồ bà bầu", Slug = "do-ba-bau", Description = "Thời trang và phụ kiện cho bà bầu", SortOrder = 1, IsActive = true },

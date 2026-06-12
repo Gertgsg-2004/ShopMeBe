@@ -33,6 +33,7 @@ import AdminReportsPage from './pages/admin/AdminReportsPage'
 import AdminFinancePage from './pages/admin/AdminFinancePage'
 import AdminNotificationsPage from './pages/admin/AdminNotificationsPage'
 import AdminStaffPage from './pages/admin/AdminStaffPage'
+import AdminSettingsPage from './pages/admin/AdminSettingsPage'
 import PosPage from './pages/pos/PosPage'
 import PaymentSuccessPage from './pages/checkout/PaymentSuccessPage'
 import PaymentFailedPage from './pages/checkout/PaymentFailedPage'
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="tai-chinh" element={<AdminFinancePage />} />
         <Route path="thong-bao" element={<AdminNotificationsPage />} />
         <Route path="nhan-vien" element={<AdminStaffPage />} />
+        <Route path="cai-dat" element={<AdminSettingsPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

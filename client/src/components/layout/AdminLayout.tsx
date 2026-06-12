@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
   Menu, X, LogOut, ChevronRight, Bell, Warehouse, Truck, BarChart2,
-  ShoppingCart, DollarSign, Shield
+  ShoppingCart, DollarSign, Shield, Settings
 } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '../../hooks/useAppSelector'
 import { logout } from '../../store/authSlice'
@@ -22,6 +22,7 @@ const navItems = [
   { path: '/admin/bao-cao', icon: BarChart2, label: 'Báo cáo', roles: ['Admin', 'Ketoan'] },
   { path: '/admin/thong-bao', icon: Bell, label: 'Thông báo', roles: ['Admin'] },
   { path: '/admin/nhan-vien', icon: Shield, label: 'Nhân viên', roles: ['Admin'] },
+  { path: '/admin/cai-dat', icon: Settings, label: 'Cài đặt', roles: ['Admin'] },
 ]
 
 export default function AdminLayout() {

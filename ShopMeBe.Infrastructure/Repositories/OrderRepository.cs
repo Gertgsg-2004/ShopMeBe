@@ -38,6 +38,7 @@ public class OrderRepository : IOrderRepository
     private static OrderDto MapToDto(Order o) => new()
     {
         Id = o.Id,
+        UserId = o.UserId,
         OrderCode = o.OrderCode,
         ReceiverName = o.ReceiverName,
         ReceiverPhone = o.ReceiverPhone,

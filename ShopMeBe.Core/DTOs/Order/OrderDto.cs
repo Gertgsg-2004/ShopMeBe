@@ -5,6 +5,7 @@ namespace ShopMeBe.Core.DTOs.Order;
 public class OrderDto
 {
     public int Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string OrderCode { get; set; } = string.Empty;
     public string ReceiverName { get; set; } = string.Empty;
     public string ReceiverPhone { get; set; } = string.Empty;

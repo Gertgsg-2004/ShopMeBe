@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingCart, Search, User, Menu, X, Heart, ChevronDown, LogOut, Package, Settings, ScanLine, Wallet } from 'lucide-react'
 import BarcodeScanner from '../barcode/BarcodeScanner'
+import NotificationBell from './NotificationBell'
 import { useAppSelector } from '../../hooks/useAppSelector'
 import { useAppDispatch } from '../../hooks/useAppSelector'
 import { logout } from '../../store/authSlice'
@@ -97,6 +98,7 @@ export default function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            <NotificationBell />
             <Link to="/gio-hang" className="relative p-2 hover:bg-pink-50 rounded-xl transition-colors">
               <ShoppingCart size={22} className="text-gray-600" />
               {cartCount > 0 && (

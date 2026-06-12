@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ShopMeBe.Core.DTOs;
 using ShopMeBe.Core.DTOs.Order;
 using ShopMeBe.Core.Entities;
 using ShopMeBe.Core.Enums;
 using ShopMeBe.Core.Interfaces;
+using ShopMeBe.Infrastructure.Data;
 using System.Security.Claims;
 
 namespace ShopMeBe.API.Controllers;
@@ -18,17 +21,23 @@ public class OrdersController : ControllerBase
     private readonly ICartRepository _cartRepo;
     private readonly IProductRepository _productRepo;
     private readonly ICouponRepository _couponRepo;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ApplicationDbContext _context;
 
     public OrdersController(
         IOrderRepository orderRepo,
         ICartRepository cartRepo,
         IProductRepository productRepo,
-        ICouponRepository couponRepo)
+        ICouponRepository couponRepo,
+        UserManager<ApplicationUser> userManager,
+        ApplicationDbContext context)
     {
         _orderRepo = orderRepo;
         _cartRepo = cartRepo;
         _productRepo = productRepo;
         _couponRepo = couponRepo;
+        _userManager = userManager;
+        _context = context;
     }
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -74,6 +83,15 @@ public class OrdersController : ControllerBase
         decimal shippingFee = subTotal >= 500000 ? 0 : 30000;
         decimal total = subTotal - discount + shippingFee;
 
+        // Wallet payment: check balance
+        if (dto.PaymentMethod == PaymentMethod.Wallet)
+        {
+            var user = await _userManager.FindByIdAsync(UserId);
+            if (user == null) return BadRequest(ApiResponseDto<OrderDto>.Fail("Không tìm thấy người dùng"));
+            if (user.WalletBalance < total)
+                return BadRequest(ApiResponseDto<OrderDto>.Fail($"Số dư ví không đủ. Cần {total:N0}đ, hiện có {user.WalletBalance:N0}đ"));
+        }
+
         var order = new Order
         {
             OrderCode = GenerateOrderCode(),
@@ -89,7 +107,7 @@ public class OrdersController : ControllerBase
             Note = dto.Note,
             CouponCode = couponCode,
             Status = OrderStatus.Pending,
-            PaymentStatus = PaymentStatus.Unpaid
+            PaymentStatus = dto.PaymentMethod == PaymentMethod.Wallet ? PaymentStatus.Paid : PaymentStatus.Unpaid
         };
 
         foreach (var item in cart.Items)
@@ -110,6 +128,29 @@ public class OrdersController : ControllerBase
             await _productRepo.UpdateStockAsync(item.ProductId, item.Quantity);
 
         await _cartRepo.ClearCartAsync(UserId);
+
+        // Deduct wallet balance
+        if (dto.PaymentMethod == PaymentMethod.Wallet)
+        {
+            var user = await _userManager.FindByIdAsync(UserId);
+            if (user != null)
+            {
+                var before = user.WalletBalance;
+                user.WalletBalance -= total;
+                await _userManager.UpdateAsync(user);
+                _context.WalletTransactions.Add(new WalletTransaction
+                {
+                    UserId = UserId,
+                    Amount = -total,
+                    BalanceBefore = before,
+                    BalanceAfter = user.WalletBalance,
+                    Type = "Purchase",
+                    Reason = $"Thanh toán đơn hàng #{created.OrderCode}",
+                    Reference = created.OrderCode
+                });
+                await _context.SaveChangesAsync();
+            }
+        }
 
         var result = await _orderRepo.GetByIdAsync(created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ApiResponseDto<OrderDto>.Ok(result!, "Đặt hàng thành công"));

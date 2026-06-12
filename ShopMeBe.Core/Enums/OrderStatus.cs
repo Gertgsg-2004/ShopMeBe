@@ -13,7 +13,8 @@ public enum PaymentMethod
 {
     COD = 0,
     BankTransfer = 1,
-    EWallet = 2
+    EWallet = 2,
+    Wallet = 3
 }
 
 public enum PaymentStatus

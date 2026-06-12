@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Wallet, ArrowUpCircle, ArrowDownCircle, Copy, Clock, CheckCircle2 } from 'lucide-react'
+import { Wallet, ArrowUpCircle, ArrowDownCircle, Clock, CheckCircle2 } from 'lucide-react'
 import api from '../services/api'
 import { formatCurrency } from '../utils/format'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -30,11 +30,12 @@ const TYPE_LABELS: Record<string, string> = {
   Refund: 'Hoàn tiền',
 }
 
-const BANK_INFO = {
+const BANK = {
+  bankId: 'VCB',        // Vietcombank bank code for VietQR
+  accountNo: '1234567890',
+  accountName: 'DO THI ANH TUYET',
   bankName: 'Vietcombank',
-  accountNumber: '1234567890',
-  accountName: 'NGUYEN THI ANH TUYET',
-  branch: 'Chi nhánh TP.HCM',
+  branch: 'Chi nhánh Mai Sơn Sơn La',
 }
 
 export default function WalletPage() {
@@ -46,8 +47,8 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true)
   const [amount, setAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const [requested, setRequested] = useState(false)
+  const [step, setStep] = useState<'select' | 'info'>('select')
+  const [confirmedAmount, setConfirmedAmount] = useState(0)
 
   const quickAmounts = [50000, 100000, 200000, 500000, 1000000]
 
@@ -68,7 +69,7 @@ export default function WalletPage() {
 
   useEffect(() => { fetchWallet() }, [])
 
-  const handleTopUpRequest = async (e: React.FormEvent) => {
+  const handleConfirmAmount = async (e: React.FormEvent) => {
     e.preventDefault()
     const value = parseFloat(amount)
     if (!value || value < 10000) {
@@ -78,7 +79,8 @@ export default function WalletPage() {
     setSubmitting(true)
     try {
       await api.post('/wallet/topup-request', { amount: value })
-      setRequested(true)
+      setConfirmedAmount(value)
+      setStep('info')
       fetchWallet()
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra')
@@ -87,10 +89,9 @@ export default function WalletPage() {
     }
   }
 
-  const copyText = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    toast.success(`Đã sao chép ${label}`)
-  }
+  const qrUrl = step === 'info'
+    ? `https://img.vietqr.io/image/${BANK.bankId}-${BANK.accountNo}-compact2.png?amount=${confirmedAmount}&addInfo=${encodeURIComponent(transferCode)}&accountName=${encodeURIComponent(BANK.accountName)}`
+    : ''
 
   if (loading) return <div className="container mx-auto px-4 py-12"><LoadingSpinner /></div>
 
@@ -116,7 +117,7 @@ export default function WalletPage() {
       {pendingTopUps.length > 0 && (
         <div className="card mb-6 border border-yellow-200 bg-yellow-50">
           <h2 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
-            <Clock size={16} /> Yêu cầu nạp tiền đang chờ xử lý
+            <Clock size={16} /> Yêu cầu đang chờ xử lý
           </h2>
           <div className="space-y-2">
             {pendingTopUps.map(p => (
@@ -133,23 +134,10 @@ export default function WalletPage() {
       <div className="card mb-6">
         <h2 className="font-semibold text-gray-800 mb-4">Nạp tiền qua chuyển khoản ngân hàng</h2>
 
-        {!showForm && !requested ? (
-          <button onClick={() => setShowForm(true)} className="btn-primary w-full justify-center">
-            Tạo yêu cầu nạp tiền
-          </button>
-        ) : requested ? (
-          <div className="text-center py-4">
-            <CheckCircle2 size={40} className="text-green-500 mx-auto mb-2" />
-            <p className="text-green-700 font-medium">Yêu cầu đã được ghi nhận!</p>
-            <p className="text-sm text-gray-500 mt-1">Vui lòng chuyển khoản theo thông tin bên dưới</p>
-            <button onClick={() => { setRequested(false); setShowForm(false); setAmount('') }} className="mt-3 text-sm text-primary-600 underline">
-              Tạo yêu cầu khác
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleTopUpRequest} className="space-y-4 mb-4">
+        {step === 'select' ? (
+          <form onSubmit={handleConfirmAmount} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Số tiền muốn nạp (đ)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Chọn số tiền muốn nạp</label>
               <input
                 type="number"
                 value={amount}
@@ -173,56 +161,65 @@ export default function WalletPage() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={submitting} className="btn-primary flex-1 justify-center">
-                {submitting ? 'Đang gửi...' : 'Xác nhận yêu cầu'}
-              </button>
-              <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-4">
-                Hủy
-              </button>
-            </div>
+            <button type="submit" disabled={submitting} className="btn-primary w-full justify-center">
+              {submitting ? 'Đang xử lý...' : 'Xác nhận và xem thông tin chuyển khoản'}
+            </button>
           </form>
-        )}
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-xl p-3">
+              <CheckCircle2 size={18} className="text-green-500 shrink-0" />
+              <p className="text-sm">Yêu cầu nạp <strong>{formatCurrency(confirmedAmount)}</strong> đã được ghi nhận. Vui lòng chuyển khoản theo thông tin bên dưới.</p>
+            </div>
 
-        {/* Bank info always visible */}
-        <div className="mt-4 bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
-          <p className="text-sm font-semibold text-gray-700">Thông tin chuyển khoản:</p>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-gray-500 text-xs">Ngân hàng</p>
-              <p className="font-medium">{BANK_INFO.bankName}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Chi nhánh</p>
-              <p className="font-medium">{BANK_INFO.branch}</p>
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Số tài khoản</p>
-              <div className="flex items-center gap-1">
-                <p className="font-mono font-bold text-primary-600">{BANK_INFO.accountNumber}</p>
-                <button onClick={() => copyText(BANK_INFO.accountNumber, 'số tài khoản')} className="text-gray-400 hover:text-primary-500">
-                  <Copy size={14} />
-                </button>
+            {/* QR Code */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="bg-white border-2 border-primary-200 rounded-2xl p-4 shadow-sm">
+                <img
+                  src={qrUrl}
+                  alt="QR chuyển khoản"
+                  className="w-56 h-56 object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+                <p className="text-xs text-gray-400 text-center mt-2">Quét mã QR bằng app ngân hàng</p>
+              </div>
+
+              {/* Bank info */}
+              <div className="w-full bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100 text-sm">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><p className="text-gray-400 text-xs">Ngân hàng</p><p className="font-medium">{BANK.bankName}</p></div>
+                  <div><p className="text-gray-400 text-xs">Chi nhánh</p><p className="font-medium">{BANK.branch}</p></div>
+                  <div>
+                    <p className="text-gray-400 text-xs">Số tài khoản</p>
+                    <p className="font-mono font-bold text-primary-600 text-base">{BANK.accountNo}</p>
+                  </div>
+                  <div><p className="text-gray-400 text-xs">Chủ tài khoản</p><p className="font-medium">Đỗ Thị Ánh Tuyết</p></div>
+                </div>
+                <div className="border-t border-gray-200 pt-3">
+                  <p className="text-gray-400 text-xs mb-1">Số tiền</p>
+                  <p className="font-bold text-green-600 text-lg">{formatCurrency(confirmedAmount)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-xs mb-1">Nội dung chuyển khoản <span className="text-red-500">(bắt buộc)</span></p>
+                  <div className="flex items-center gap-2 bg-white border border-primary-200 rounded-lg px-3 py-2">
+                    <p className="font-mono font-bold text-primary-700 text-lg flex-1">{transferCode}</p>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(transferCode); toast.success('Đã sao chép mã') }}
+                      className="text-xs text-primary-600 border border-primary-300 rounded-lg px-2 py-1 hover:bg-primary-50">
+                      Sao chép
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Nhập đúng nội dung để admin xác nhận nhanh hơn</p>
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-gray-500 text-xs">Chủ tài khoản</p>
-              <p className="font-medium">{BANK_INFO.accountName}</p>
-            </div>
+
+            <button onClick={() => { setStep('select'); setAmount('') }}
+              className="btn-secondary w-full justify-center text-sm">
+              Tạo yêu cầu khác
+            </button>
           </div>
-          {transferCode && (
-            <div className="border-t border-gray-200 pt-3">
-              <p className="text-gray-500 text-xs mb-1">Nội dung chuyển khoản (bắt buộc)</p>
-              <div className="flex items-center gap-2 bg-white border border-primary-200 rounded-lg px-3 py-2">
-                <p className="font-mono font-bold text-primary-700 text-lg flex-1">{transferCode}</p>
-                <button onClick={() => copyText(transferCode, 'nội dung chuyển khoản')} className="text-gray-400 hover:text-primary-500">
-                  <Copy size={16} />
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Mã nội dung duy nhất của tài khoản bạn. Chuyển khoản đúng nội dung để được duyệt tự động.</p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* History */}

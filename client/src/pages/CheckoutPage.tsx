@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Tag, Truck, CreditCard, Wallet } from 'lucide-react'
 import { useAppSelector } from '../hooks/useAppSelector'
 import { orderService } from '../services/orderService'
 import { formatCurrency } from '../utils/format'
+import api from '../services/api'
 import toast from 'react-hot-toast'
 
 interface CheckoutForm {
@@ -33,6 +34,13 @@ export default function CheckoutPage() {
   const [couponApplied, setCouponApplied] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [walletBalance, setWalletBalance] = useState(0)
+
+  useEffect(() => {
+    api.get('/wallet').then(res => {
+      if (res.data?.data) setWalletBalance(res.data.data.balance || 0)
+    }).catch(() => {})
+  }, [])
 
   const couponCode = watch('couponCode')
   const paymentMethod = watch('paymentMethod')
@@ -133,11 +141,11 @@ export default function CheckoutPage() {
             <div className="space-y-3">
               {[
                 { value: 0, label: 'Tiền mặt khi nhận hàng (COD)', icon: '💵', desc: 'Thanh toán khi nhận được hàng' },
-                { value: 1, label: 'Chuyển khoản ngân hàng', icon: '🏦', desc: 'STK: 1234567890 - Ngân hàng XYZ - Nguyễn Văn A' },
-                { value: 2, label: 'Ví điện tử', icon: '📱', desc: 'MoMo, ZaloPay, VNPay (sắp ra mắt)' },
+                { value: 1, label: 'Chuyển khoản ngân hàng', icon: '🏦', desc: 'STK: 1234567890 - Vietcombank - Đỗ Thị Ánh Tuyết' },
+                { value: 3, label: 'Thanh toán bằng ví', icon: '👛', desc: `Số dư: ${formatCurrency(walletBalance)}${walletBalance < total ? ' (không đủ)' : ''}` },
               ].map((method) => (
-                <label key={method.value} className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${Number(paymentMethod) === method.value ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-primary-200'}`}>
-                  <input type="radio" {...register('paymentMethod')} value={method.value} className="mt-1" />
+                <label key={method.value} className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${Number(paymentMethod) === method.value ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-primary-200'} ${method.value === 3 && walletBalance < total ? 'opacity-50' : ''}`}>
+                  <input type="radio" {...register('paymentMethod')} value={method.value} className="mt-1" disabled={method.value === 3 && walletBalance < total} />
                   <div>
                     <span className="font-medium text-sm">{method.icon} {method.label}</span>
                     <p className="text-xs text-gray-500 mt-0.5">{method.desc}</p>

@@ -58,7 +58,10 @@ export default function AdminCategoriesPage() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) setImagePreview(URL.createObjectURL(file))
+    if (file) {
+      if (imagePreview?.startsWith('blob:')) URL.revokeObjectURL(imagePreview)
+      setImagePreview(URL.createObjectURL(file))
+    }
   }
 
   const addChip = () => {

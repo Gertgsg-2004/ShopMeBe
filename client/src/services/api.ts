@@ -49,9 +49,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && original && !original._retried && !isAuthEndpoint) {
       original._retried = true
       // Deduplicate concurrent refresh attempts
-      refreshPromise = refreshPromise ?? tryRefreshToken()
+      if (!refreshPromise) refreshPromise = tryRefreshToken().finally(() => { refreshPromise = null })
       const newToken = await refreshPromise
-      refreshPromise = null
       if (newToken) {
         original.headers.Authorization = `Bearer ${newToken}`
         return api(original)

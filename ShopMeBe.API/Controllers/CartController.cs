@@ -51,11 +51,13 @@ public class CartController : ControllerBase
     {
         if (dto.Quantity <= 0)
         {
-            await _cartRepo.RemoveItemAsync(itemId);
+            var removed = await _cartRepo.RemoveItemAsync(UserId, itemId);
+            if (!removed) return NotFound(ApiResponseDto<CartDto>.Fail("Không tìm thấy sản phẩm trong giỏ"));
         }
         else
         {
-            await _cartRepo.UpdateItemAsync(itemId, dto.Quantity);
+            var updated = await _cartRepo.UpdateItemAsync(UserId, itemId, dto.Quantity);
+            if (!updated) return NotFound(ApiResponseDto<CartDto>.Fail("Không tìm thấy sản phẩm trong giỏ"));
         }
 
         var cart = await _cartRepo.GetCartAsync(UserId);
@@ -65,7 +67,8 @@ public class CartController : ControllerBase
     [HttpDelete("items/{itemId:int}")]
     public async Task<ActionResult<ApiResponseDto<CartDto>>> RemoveItem(int itemId)
     {
-        await _cartRepo.RemoveItemAsync(itemId);
+        var removed = await _cartRepo.RemoveItemAsync(UserId, itemId);
+        if (!removed) return NotFound(ApiResponseDto<CartDto>.Fail("Không tìm thấy sản phẩm trong giỏ"));
         var cart = await _cartRepo.GetCartAsync(UserId);
         return Ok(ApiResponseDto<CartDto>.Ok(cart ?? new CartDto(), "Đã xóa sản phẩm khỏi giỏ hàng"));
     }

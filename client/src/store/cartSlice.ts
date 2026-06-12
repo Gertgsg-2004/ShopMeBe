@@ -79,8 +79,11 @@ const cartSlice = createSlice({
       .addCase(fetchCart.fulfilled, (state, action) => { state.cart = action.payload; state.loading = false })
       .addCase(fetchCart.rejected, (state) => { state.loading = false })
       .addCase(addToCart.fulfilled, setCart)
+      .addCase(addToCart.rejected, (state, action) => { state.loading = false; state.error = action.payload as string })
       .addCase(updateCartItem.fulfilled, setCart)
+      .addCase(updateCartItem.rejected, (state, action) => { state.loading = false; state.error = action.payload as string })
       .addCase(removeCartItem.fulfilled, setCart)
+      .addCase(removeCartItem.rejected, (state, action) => { state.loading = false; state.error = action.payload as string })
   },
 })
 

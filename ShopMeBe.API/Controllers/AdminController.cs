@@ -132,7 +132,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPost("customers/{userId}/reset-password")]
-    [Authorize(Roles = "Admin,CSKH")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ResetPassword(string userId, [FromBody] ResetPasswordDto dto)
     {
         var user = await _userManager.FindByIdAsync(userId);

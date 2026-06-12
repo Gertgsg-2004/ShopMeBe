@@ -73,6 +73,8 @@ export default function AdminProductsPage() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
+    // Revoke old blob URLs before creating new ones
+    previewImages.forEach((url) => { if (url.startsWith('blob:')) URL.revokeObjectURL(url) })
     const urls = files.map((f) => URL.createObjectURL(f))
     setPreviewImages(urls)
   }

@@ -18,6 +18,10 @@ public class FinanceController : ControllerBase
     [HttpGet("summary")]
     public async Task<IActionResult> GetSummary([FromQuery] string? from, [FromQuery] string? to)
     {
+        if (from != null && !DateTime.TryParse(from, out _))
+            return BadRequest(ApiResponseDto<object>.Fail("Ngày từ không hợp lệ"));
+        if (to != null && !DateTime.TryParse(to, out _))
+            return BadRequest(ApiResponseDto<object>.Fail("Ngày đến không hợp lệ"));
         var fromDate = from != null ? DateTime.Parse(from) : DateTime.UtcNow.AddDays(-30);
         var toDate = to != null ? DateTime.Parse(to).AddDays(1) : DateTime.UtcNow.AddDays(1);
 
@@ -48,6 +52,10 @@ public class FinanceController : ControllerBase
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
         [FromQuery] string? from = null, [FromQuery] string? to = null)
     {
+        if (from != null && !DateTime.TryParse(from, out _))
+            return BadRequest(ApiResponseDto<object>.Fail("Ngày từ không hợp lệ"));
+        if (to != null && !DateTime.TryParse(to, out _))
+            return BadRequest(ApiResponseDto<object>.Fail("Ngày đến không hợp lệ"));
         var fromDate = from != null ? DateTime.Parse(from) : DateTime.MinValue;
         var toDate = to != null ? DateTime.Parse(to).AddDays(1) : DateTime.MaxValue;
 
@@ -73,6 +81,10 @@ public class FinanceController : ControllerBase
         [FromQuery] string? type = null, [FromQuery] string? userId = null,
         [FromQuery] string? from = null, [FromQuery] string? to = null)
     {
+        if (from != null && !DateTime.TryParse(from, out _))
+            return BadRequest(ApiResponseDto<object>.Fail("Ngày từ không hợp lệ"));
+        if (to != null && !DateTime.TryParse(to, out _))
+            return BadRequest(ApiResponseDto<object>.Fail("Ngày đến không hợp lệ"));
         var fromDate = from != null ? DateTime.Parse(from) : DateTime.MinValue;
         var toDate = to != null ? DateTime.Parse(to).AddDays(1) : DateTime.MaxValue;
 

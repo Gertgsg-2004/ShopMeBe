@@ -84,4 +84,14 @@ public class CouponRepository : ICouponRepository
 
         return (true, "Áp dụng mã giảm giá thành công", discount);
     }
+
+    public async Task IncrementUsageAsync(string code)
+    {
+        var coupon = await GetByCodeAsync(code);
+        if (coupon != null)
+        {
+            coupon.UsedCount++;
+            await _context.SaveChangesAsync();
+        }
+    }
 }

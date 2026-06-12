@@ -11,4 +11,5 @@ public interface ICouponRepository
     Task<Coupon> UpdateAsync(Coupon coupon);
     Task DeleteAsync(int id);
     Task<(bool IsValid, string Message, decimal Discount)> ValidateAsync(string code, decimal orderAmount);
+    Task IncrementUsageAsync(string code);
 }

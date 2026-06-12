@@ -78,24 +78,26 @@ public class CartRepository : ICartRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateItemAsync(int cartItemId, int quantity)
+    public async Task<bool> UpdateItemAsync(string userId, int cartItemId, int quantity)
     {
-        var item = await _context.CartItems.FindAsync(cartItemId);
-        if (item != null)
-        {
-            item.Quantity = quantity;
-            await _context.SaveChangesAsync();
-        }
+        var item = await _context.CartItems
+            .Include(i => i.Cart)
+            .FirstOrDefaultAsync(i => i.Id == cartItemId && i.Cart.UserId == userId);
+        if (item == null) return false;
+        item.Quantity = quantity;
+        await _context.SaveChangesAsync();
+        return true;
     }
 
-    public async Task RemoveItemAsync(int cartItemId)
+    public async Task<bool> RemoveItemAsync(string userId, int cartItemId)
     {
-        var item = await _context.CartItems.FindAsync(cartItemId);
-        if (item != null)
-        {
-            _context.CartItems.Remove(item);
-            await _context.SaveChangesAsync();
-        }
+        var item = await _context.CartItems
+            .Include(i => i.Cart)
+            .FirstOrDefaultAsync(i => i.Id == cartItemId && i.Cart.UserId == userId);
+        if (item == null) return false;
+        _context.CartItems.Remove(item);
+        await _context.SaveChangesAsync();
+        return true;
     }
 
     public async Task ClearCartAsync(string userId)

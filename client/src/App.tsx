@@ -41,7 +41,7 @@ import PaymentFailedPage from './pages/checkout/PaymentFailedPage'
 
 function ProtectedRoute({ children, adminOnly = false, roles: requiredRoles }: { children: React.ReactNode; adminOnly?: boolean; roles?: string[] }) {
   const { isAuthenticated, roles } = useAppSelector((s) => s.auth)
-  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!isAuthenticated) return <Navigate to="/dang-nhap" replace />
   if (adminOnly && !roles.some(r => ['Admin', 'CSKH', 'Ketoan', 'Kho'].includes(r))) return <Navigate to="/" replace />
   if (requiredRoles && !requiredRoles.some(r => roles.includes(r))) return <Navigate to="/" replace />
   return <>{children}</>

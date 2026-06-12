@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Tag, Truck, CreditCard, Wallet } from 'lucide-react'
-import { useAppSelector } from '../hooks/useAppSelector'
+import { useAppSelector, useAppDispatch } from '../hooks/useAppSelector'
+import { clearCartState } from '../store/cartSlice'
 import { orderService } from '../services/orderService'
 import { formatCurrency } from '../utils/format'
 import api from '../services/api'
@@ -19,6 +20,7 @@ interface CheckoutForm {
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
   const { cart } = useAppSelector((s) => s.cart)
   const { user } = useAppSelector((s) => s.auth)
   const { register, handleSubmit, watch, formState: { errors } } = useForm<CheckoutForm>({
@@ -55,7 +57,7 @@ export default function CheckoutPage() {
   }
 
   const shippingFee = cart.total >= shipConfig.freeShipThreshold ? 0 : shipConfig.shippingFee
-  const total = cart.total - couponDiscount + shippingFee
+  const total = Math.max(0, cart.total - couponDiscount) + shippingFee
 
   const handleApplyCoupon = async () => {
     if (!couponCode?.trim()) return
@@ -88,6 +90,7 @@ export default function CheckoutPage() {
         couponCode: couponApplied || undefined,
       })
       if (res.success && res.data) {
+        dispatch(clearCartState())
         toast.success('Đặt hàng thành công!')
         navigate(`/dat-hang-thanh-cong/${res.data.id}`)
       } else {

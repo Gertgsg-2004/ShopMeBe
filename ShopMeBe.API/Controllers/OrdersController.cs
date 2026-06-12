@@ -54,6 +54,8 @@ public class OrdersController : ControllerBase
     {
         var order = await _orderRepo.GetByIdAsync(id);
         if (order == null) return NotFound(ApiResponseDto<OrderDto>.Fail("Không tìm thấy đơn hàng"));
+        var isAdmin = User.IsInRole("Admin");
+        if (!isAdmin && order.UserId != UserId) return Forbid();
         return Ok(ApiResponseDto<OrderDto>.Ok(order));
     }
 
@@ -127,38 +129,68 @@ public class OrdersController : ControllerBase
             });
         }
 
-        var created = await _orderRepo.CreateAsync(order);
-
-        foreach (var item in cart.Items)
-            await _productRepo.UpdateStockAsync(item.ProductId, item.Quantity);
-
-        await _cartRepo.ClearCartAsync(UserId);
-
-        // Deduct wallet balance
-        if (dto.PaymentMethod == PaymentMethod.Wallet)
+        // Wrap everything in a transaction to prevent double-spend / oversell
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            var user = await _userManager.FindByIdAsync(UserId);
-            if (user != null)
+            // Lock & decrement stock atomically
+            foreach (var item in cart.Items)
             {
-                var before = user.WalletBalance;
-                user.WalletBalance -= total;
-                await _userManager.UpdateAsync(user);
+                var product = await _context.Products
+                    .FromSqlRaw("SELECT * FROM Products WITH (UPDLOCK) WHERE Id = {0}", item.ProductId)
+                    .FirstOrDefaultAsync();
+                if (product == null || product.Stock < item.Quantity)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(ApiResponseDto<OrderDto>.Fail($"Sản phẩm '{item.ProductName}' không đủ hàng trong kho"));
+                }
+                product.Stock -= item.Quantity;
+            }
+
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+
+            // Deduct wallet balance inside same transaction
+            if (dto.PaymentMethod == PaymentMethod.Wallet)
+            {
+                var walletUser = await _context.Users
+                    .FromSqlRaw("SELECT * FROM AspNetUsers WITH (UPDLOCK) WHERE Id = {0}", UserId)
+                    .FirstOrDefaultAsync();
+                if (walletUser == null || walletUser.WalletBalance < total)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(ApiResponseDto<OrderDto>.Fail("Số dư ví không đủ"));
+                }
+                var before = walletUser.WalletBalance;
+                walletUser.WalletBalance -= total;
                 _context.WalletTransactions.Add(new WalletTransaction
                 {
                     UserId = UserId,
                     Amount = -total,
                     BalanceBefore = before,
-                    BalanceAfter = user.WalletBalance,
+                    BalanceAfter = walletUser.WalletBalance,
                     Type = "Purchase",
-                    Reason = $"Thanh toán đơn hàng #{created.OrderCode}",
-                    Reference = created.OrderCode
+                    Reason = $"Thanh toán đơn hàng #{order.OrderCode}",
+                    Reference = order.OrderCode
                 });
                 await _context.SaveChangesAsync();
             }
+
+            // Increment coupon usage
+            if (!string.IsNullOrEmpty(couponCode))
+                await _couponRepo.IncrementUsageAsync(couponCode);
+
+            await _cartRepo.ClearCartAsync(UserId);
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
         }
 
-        var result = await _orderRepo.GetByIdAsync(created.Id);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, ApiResponseDto<OrderDto>.Ok(result!, "Đặt hàng thành công"));
+        var result = await _orderRepo.GetByIdAsync(order.Id);
+        return CreatedAtAction(nameof(GetById), new { id = order.Id }, ApiResponseDto<OrderDto>.Ok(result!, "Đặt hàng thành công"));
     }
 
     [AllowAnonymous]
@@ -196,6 +228,7 @@ public class OrdersController : ControllerBase
     {
         var order = await _orderRepo.GetByIdAsync(id);
         if (order == null) return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy đơn hàng"));
+        if (order.UserId != UserId) return Forbid();
         if (order.Status != OrderStatus.Pending)
             return BadRequest(ApiResponseDto<object>.Fail("Chỉ có thể hủy đơn hàng đang chờ xác nhận"));
 
@@ -215,17 +248,17 @@ public class OrdersController : ControllerBase
     [HttpPut("{id:int}/status")]
     public async Task<ActionResult<ApiResponseDto<object>>> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto dto)
     {
-        if (await _orderRepo.GetByIdAsync(id) is not null)
-        {
-            await _orderRepo.UpdateStatusAsync(id, dto.Status);
-        }
+        if (await _orderRepo.GetByIdAsync(id) is null)
+            return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy đơn hàng"));
+        await _orderRepo.UpdateStatusAsync(id, dto.Status);
         return Ok(ApiResponseDto<object>.Ok(new { }, "Cập nhật trạng thái thành công"));
     }
 
     private static string GenerateOrderCode()
     {
-        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
-        return $"ORD{timestamp[^6..]}";
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+        var suffix = Random.Shared.Next(100, 999);
+        return $"ORD{timestamp[^7..]}{suffix}";
     }
 }
 

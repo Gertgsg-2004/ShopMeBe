@@ -92,11 +92,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="mt-3 text-center">
-            <p className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3">
-              Demo admin: <strong>admin@shopmebe.vn</strong> / <strong>Admin@123456</strong>
-            </p>
-          </div>
         </div>
       </div>
     </div>

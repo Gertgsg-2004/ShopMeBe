@@ -28,5 +28,6 @@ public class AddToCartDto
 
 public class UpdateCartItemDto
 {
+    [System.ComponentModel.DataAnnotations.Range(0, 999)]
     public int Quantity { get; set; }
 }

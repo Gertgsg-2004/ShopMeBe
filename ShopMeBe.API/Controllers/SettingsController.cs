@@ -104,6 +104,11 @@ public class SettingsController : ControllerBase
         var ext = Path.GetExtension(file.FileName).ToLower();
         if (!new[] { ".jpg", ".jpeg", ".png", ".webp" }.Contains(ext))
             return BadRequest(ApiResponseDto<object>.Fail("Chỉ hỗ trợ ảnh JPG, PNG, WEBP"));
+        var allowedMimes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedMimes.Contains(file.ContentType.ToLower()))
+            return BadRequest(ApiResponseDto<object>.Fail("File không hợp lệ"));
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(ApiResponseDto<object>.Fail("Ảnh không được vượt quá 5MB"));
 
         var uploadsPath = Path.Combine(_env.WebRootPath, "uploads", "qr");
         Directory.CreateDirectory(uploadsPath);

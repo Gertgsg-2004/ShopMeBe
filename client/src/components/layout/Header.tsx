@@ -171,7 +171,7 @@ export default function Header() {
           <Link to="/" className="whitespace-nowrap px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-pink-50 rounded-lg transition-colors">
             Trang chủ
           </Link>
-          {categories.slice(0, 6).map((cat) => (
+          {categories.slice(0, 8).map((cat) => (
             <Link
               key={cat.id}
               to={`/danh-muc/${cat.slug}`}

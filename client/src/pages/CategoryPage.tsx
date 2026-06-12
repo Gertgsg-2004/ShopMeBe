@@ -35,14 +35,55 @@ export default function CategoryPage() {
   const maxPrice = searchParams.get('maxPrice') || ''
   const keyword = searchParams.get('keyword') || ''
 
+  // Per-category filter chips — values are keywords matched against product names
+  const FILTERS_BY_CATEGORY: Record<string, { label: string; value: string }[]> = {
+    'do-ba-bau': [
+      { label: '👗 Váy bầu', value: 'váy bầu' },
+      { label: '👖 Quần bầu', value: 'quần bầu' },
+      { label: '👚 Áo bầu', value: 'áo bầu' },
+      { label: '💼 Đồ công sở', value: 'công sở' },
+    ],
+    'do-so-sinh': [
+      { label: '👶 Bodysuit', value: 'bodysuit' },
+      { label: '🧣 Khăn', value: 'khăn' },
+      { label: '🎁 Gift set', value: 'gift set' },
+      { label: '👕 Bộ quần áo', value: 'bộ quần áo' },
+    ],
+    'do-choi': [
+      { label: '🧸 Thảm chơi', value: 'thảm' },
+      { label: '🧩 Xếp hình', value: 'xếp hình' },
+      { label: '🪵 Đồ chơi gỗ', value: 'gỗ' },
+      { label: '🎵 Đồ chơi nhạc', value: 'nhạc' },
+    ],
+    'sua-va-thuc-pham': [
+      { label: '🍼 Sữa bột', value: 'sữa' },
+      { label: '🥣 Ăn dặm', value: 'ăn dặm' },
+      { label: '🌾 Cháo dinh dưỡng', value: 'cháo' },
+    ],
+    'phu-kien': [
+      { label: '🎒 Địu em bé', value: 'địu' },
+      { label: '🛒 Xe đẩy', value: 'xe đẩy' },
+      { label: '🍼 Bình sữa', value: 'bình sữa' },
+      { label: '👜 Túi bỉm', value: 'túi' },
+    ],
+    'bim': [
+      { label: '🍼 Sơ sinh (NB)', value: 'newborn' },
+      { label: 'Size S', value: 'size s' },
+      { label: 'Size M', value: 'size m' },
+      { label: 'Size L', value: 'size l' },
+    ],
+    'quan-ao-thu-dong': [
+      { label: '🧥 Áo khoác', value: 'áo khoác' },
+      { label: '🧸 Bộ nỉ', value: 'nỉ' },
+      { label: '👘 Hoodie', value: 'hoodie' },
+      { label: '👶 Bé trai', value: 'bé trai' },
+      { label: '👧 Bé gái', value: 'bé gái' },
+    ],
+  }
+
   const productTypes = [
     { label: 'Tất cả', value: '' },
-    { label: '👕 Áo', value: 'áo' },
-    { label: '👖 Quần', value: 'quần' },
-    { label: '👟 Giày', value: 'giày' },
-    { label: '🧢 Nón', value: 'nón' },
-    { label: '🧦 Tất', value: 'tất' },
-    { label: '🧤 Bao tay', value: 'bao tay' },
+    ...(FILTERS_BY_CATEGORY[slug ?? ''] ?? []),
   ]
 
   useEffect(() => {
@@ -96,6 +137,7 @@ export default function CategoryPage() {
             <h3 className="font-semibold text-gray-800">Bộ lọc</h3>
 
             {/* Loại sản phẩm */}
+            {productTypes.length > 1 && (
             <div>
               <p className="text-sm font-medium text-gray-700 mb-3">Loại sản phẩm</p>
               <div className="flex flex-wrap gap-2">
@@ -114,6 +156,7 @@ export default function CategoryPage() {
                 ))}
               </div>
             </div>
+            )}
 
             {/* Khoảng giá */}
             <div>

@@ -55,8 +55,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
             e.Property(x => x.SalePrice).HasColumnType("decimal(18,2)");
             e.HasOne(x => x.Category).WithMany(x => x.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
-            // Soft delete: deleted products are hidden from every query automatically
-            e.HasQueryFilter(x => !x.IsDeleted);
         });
 
         builder.Entity<ProductImage>(e =>

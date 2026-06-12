@@ -18,6 +18,7 @@ public class ProductRepository : IProductRepository
 
     private IQueryable<Product> BaseQuery() =>
         _context.Products
+            .Where(p => !p.IsDeleted)
             .Include(p => p.Category)
             .Include(p => p.Images);
 

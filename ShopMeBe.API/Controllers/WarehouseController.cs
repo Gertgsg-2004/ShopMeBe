@@ -24,66 +24,66 @@ public class WarehouseController : ControllerBase
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
     [HttpGet("stock")]
-    public async Task<ActionResult<ApiResponseDto<object>>> GetStock(
-        [FromQuery] string? search,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<ApiResponseDto<object>>> GetStock([FromQuery] string? search)
     {
         var query = _db.Products.Include(p => p.Images).Where(p => p.IsActive);
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(p => p.Name.Contains(search) || (p.Sku != null && p.Sku.Contains(search)));
 
-        var total = await query.CountAsync();
         var items = await query
             .OrderBy(p => p.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new StockSummaryDto
+            .Select(p => new
             {
-                ProductId = p.Id,
-                ProductName = p.Name,
-                Sku = p.Sku,
-                CurrentStock = p.Stock,
-                Price = p.Price,
-                MainImage = p.Images.Where(i => i.IsMain).Select(i => i.ImageUrl).FirstOrDefault()
-                            ?? p.Images.Select(i => i.ImageUrl).FirstOrDefault()
+                productId = p.Id,
+                productName = p.Name,
+                sku = p.Sku,
+                currentStock = p.Stock,
+                price = p.Price,
+                costPrice = 0m,
+                stockValue = p.Stock * p.Price,
+                mainImageUrl = p.Images.Where(i => i.IsMain).Select(i => i.ImageUrl).FirstOrDefault()
+                               ?? p.Images.Select(i => i.ImageUrl).FirstOrDefault()
             })
             .ToListAsync();
 
-        return Ok(ApiResponseDto<object>.Ok(new { total, page, pageSize, items }));
+        return Ok(ApiResponseDto<object>.Ok(items));
     }
 
     [HttpGet("transactions")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetTransactions(
+        [FromQuery] string? type,
         [FromQuery] int? productId,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 20)
     {
         var query = _db.StockTransactions.Include(t => t.Product).AsQueryable();
         if (productId.HasValue) query = query.Where(t => t.ProductId == productId);
+        if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<StockTransactionType>(type, out var typeEnum))
+            query = query.Where(t => t.Type == typeEnum);
 
-        var total = await query.CountAsync();
+        var totalCount = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
         var items = await query
             .OrderByDescending(t => t.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(t => new StockTransactionDto
+            .Select(t => new
             {
-                Id = t.Id,
-                ProductId = t.ProductId,
-                ProductName = t.Product.Name,
-                Sku = t.Product.Sku,
-                Type = t.Type.ToString(),
-                Quantity = t.Quantity,
-                StockBefore = t.StockBefore,
-                StockAfter = t.StockAfter,
-                Reference = t.Reference,
-                Notes = t.Notes,
-                CreatedAt = t.CreatedAt
+                id = t.Id,
+                productId = t.ProductId,
+                productName = t.Product.Name,
+                sku = t.Product.Sku,
+                type = t.Type.ToString(),
+                quantity = t.Quantity,
+                stockBefore = t.StockBefore,
+                stockAfter = t.StockAfter,
+                reference = t.Reference,
+                notes = t.Notes,
+                createdAt = t.CreatedAt
             })
             .ToListAsync();
 
-        return Ok(ApiResponseDto<object>.Ok(new { total, page, pageSize, items }));
+        return Ok(ApiResponseDto<object>.Ok(new { items, totalCount, page, pageSize, totalPages, hasPrevious = page > 1, hasNext = page < totalPages }));
     }
 
     [HttpPost("adjust")]
@@ -113,7 +113,7 @@ public class WarehouseController : ControllerBase
         return Ok(ApiResponseDto<object>.Ok(new { ProductId = dto.ProductId, OldStock = before, NewStock = dto.NewStock }, "Điều chỉnh tồn kho thành công"));
     }
 
-    [HttpPost("inventory-check")]
+    [HttpPost("inventory-checks")]
     public async Task<ActionResult<ApiResponseDto<InventoryCheckDto>>> CreateInventoryCheck([FromBody] CreateInventoryCheckDto dto)
     {
         var count = await _db.InventoryChecks.CountAsync() + 1;
@@ -144,27 +144,34 @@ public class WarehouseController : ControllerBase
     }
 
     [HttpGet("inventory-checks")]
-    public async Task<ActionResult<ApiResponseDto<object>>> GetInventoryChecks(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+    public async Task<ActionResult<ApiResponseDto<object>>> GetInventoryChecks()
     {
-        var total = await _db.InventoryChecks.CountAsync();
         var items = await _db.InventoryChecks
+            .Include(c => c.Items).ThenInclude(i => i.Product)
             .OrderByDescending(c => c.CheckDate)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(c => new InventoryCheckDto
+            .Take(50)
+            .Select(c => new
             {
-                Id = c.Id,
-                Code = c.Code,
-                CheckDate = c.CheckDate,
-                Notes = c.Notes,
-                IsCompleted = c.IsCompleted,
-                Items = new()
+                id = c.Id,
+                checkCode = c.Code,
+                status = c.IsCompleted ? "Completed" : "Draft",
+                notes = c.Notes,
+                createdAt = c.CheckDate,
+                completedAt = c.IsCompleted ? (DateTime?)c.UpdatedAt : null,
+                items = c.Items.Select(i => new
+                {
+                    id = i.Id,
+                    productId = i.ProductId,
+                    productName = i.Product.Name,
+                    sku = i.Product.Sku,
+                    systemStock = i.SystemStock,
+                    actualStock = i.ActualStock,
+                    difference = i.ActualStock - i.SystemStock
+                }).ToList()
             })
             .ToListAsync();
 
-        return Ok(ApiResponseDto<object>.Ok(new { total, page, pageSize, items }));
+        return Ok(ApiResponseDto<object>.Ok(items));
     }
 
     [HttpGet("inventory-checks/{id:int}")]
@@ -175,7 +182,7 @@ public class WarehouseController : ControllerBase
         return Ok(ApiResponseDto<InventoryCheckDto>.Ok(dto));
     }
 
-    [HttpPut("inventory-checks/{id:int}/complete")]
+    [HttpPost("inventory-checks/{id:int}/complete")]
     public async Task<ActionResult<ApiResponseDto<object>>> CompleteInventoryCheck(int id)
     {
         var check = await _db.InventoryChecks

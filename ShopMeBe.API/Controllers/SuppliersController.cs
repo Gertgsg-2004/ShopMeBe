@@ -24,20 +24,14 @@ public class SuppliersController : ControllerBase
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponseDto<object>>> GetAll(
-        [FromQuery] string? search,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+    public async Task<ActionResult<ApiResponseDto<object>>> GetAll([FromQuery] string? search)
     {
-        var query = _db.Suppliers.AsQueryable();
+        var query = _db.Suppliers.Include(s => s.PurchaseOrders).AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(s => s.Name.Contains(search) || (s.Phone != null && s.Phone.Contains(search)));
 
-        var total = await query.CountAsync();
         var items = await query
             .OrderBy(s => s.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
             .Select(s => new SupplierDto
             {
                 Id = s.Id,
@@ -53,7 +47,7 @@ public class SuppliersController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(ApiResponseDto<object>.Ok(new { total, page, pageSize, items }));
+        return Ok(ApiResponseDto<object>.Ok(items));
     }
 
     [HttpGet("{id:int}")]

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DollarSign, ArrowUpCircle, ArrowDownCircle, Wallet, Search, CheckCircle2, XCircle, Clock } from 'lucide-react'
+import { Search, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import api from '../../services/api'
 import { formatCurrency } from '../../utils/format'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
@@ -65,8 +65,7 @@ const TYPE_COLORS: Record<string, string> = {
 }
 
 export default function AdminFinancePage() {
-  const [tab, setTab] = useState<'summary' | 'payments' | 'wallet' | 'topups'>('summary')
-  const [summary, setSummary] = useState<Summary | null>(null)
+  const [tab, setTab] = useState<'payments' | 'wallet' | 'topups'>('payments')
   const [payments, setPayments] = useState<PaymentItem[]>([])
   const [walletTxs, setWalletTxs] = useState<WalletTx[]>([])
   const [topUpRequests, setTopUpRequests] = useState<TopUpRequest[]>([])
@@ -75,20 +74,12 @@ export default function AdminFinancePage() {
   const [searchFilter, setSearchFilter] = useState('')
   const [pendingOnly, setPendingOnly] = useState(true)
 
-  useEffect(() => { loadSummary() }, [])
+  useEffect(() => { loadPayments() }, [])
   useEffect(() => {
     if (tab === 'payments') loadPayments()
     if (tab === 'wallet') loadWallet()
     if (tab === 'topups') loadTopUps()
   }, [tab, typeFilter, pendingOnly])
-
-  const loadSummary = async () => {
-    setLoading(true)
-    try {
-      const { data } = await api.get('/admin/finance/summary')
-      if (data.data) setSummary(data.data)
-    } finally { setLoading(false) }
-  }
 
   const loadPayments = async () => {
     setLoading(true)
@@ -137,7 +128,6 @@ export default function AdminFinancePage() {
   )
 
   const tabs = [
-    { id: 'summary', label: 'Tổng quan' },
     { id: 'payments', label: 'Lịch sử thanh toán' },
     { id: 'wallet', label: 'Giao dịch ví' },
     { id: 'topups', label: 'Yêu cầu nạp tiền' },
@@ -162,28 +152,6 @@ export default function AdminFinancePage() {
 
       {loading && <LoadingSpinner />}
 
-      {/* Summary */}
-      {tab === 'summary' && !loading && summary && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Tổng doanh thu', value: formatCurrency(summary.totalRevenue), icon: DollarSign, color: 'text-green-500 bg-green-50' },
-              { label: 'Tổng đơn hàng', value: summary.totalOrders.toLocaleString(), icon: ArrowUpCircle, color: 'text-blue-500 bg-blue-50' },
-              { label: 'Tổng tiền nạp', value: formatCurrency(summary.totalTopUp), icon: ArrowDownCircle, color: 'text-purple-500 bg-purple-50' },
-              { label: 'Tổng số dư ví', value: formatCurrency(summary.totalWalletBalance), icon: Wallet, color: 'text-amber-500 bg-amber-50' },
-            ].map((s, i) => (
-              <div key={i} className="card">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${s.color}`}>
-                  <s.icon size={20} />
-                </div>
-                <p className="text-2xl font-bold text-gray-800">{s.value}</p>
-                <p className="text-sm text-gray-500 mt-1">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Payments */}
       {tab === 'payments' && !loading && (
         <div className="card overflow-hidden p-0">
@@ -202,7 +170,7 @@ export default function AdminFinancePage() {
                     <td className="py-3 px-4 font-mono text-xs text-gray-600">{p.orderCode}</td>
                     <td className="py-3 px-4 text-gray-700">{p.customerName || '-'}</td>
                     <td className="py-3 px-4 font-semibold text-gray-800">{formatCurrency(p.total)}</td>
-                    <td className="py-3 px-4 text-gray-600">{p.paymentMethod === 1 ? 'Tiền mặt' : p.paymentMethod === 2 ? 'VNPay' : 'COD'}</td>
+                    <td className="py-3 px-4 text-gray-600">{p.paymentMethod === 0 ? 'COD' : p.paymentMethod === 1 ? 'Chuyển khoản' : p.paymentMethod === 2 ? 'Ví điện tử' : p.paymentMethod === 3 ? 'Ví ShopMeBe' : 'Khác'}</td>
                     <td className="py-3 px-4">
                       <span className={`badge ${p.status === 1 ? 'bg-green-100 text-green-600' : p.status === 0 ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-600'}`}>
                         {p.status === 0 ? 'Chờ' : p.status === 1 ? 'Xác nhận' : p.status === 2 ? 'Giao hàng' : 'Hoàn thành'}

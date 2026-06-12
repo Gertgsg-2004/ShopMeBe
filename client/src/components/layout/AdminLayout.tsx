@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
+  Package, ShoppingBag, Users, Tag, FolderOpen,
   Menu, X, LogOut, ChevronRight, Bell, Warehouse, Truck, BarChart2,
   ShoppingCart, DollarSign, Shield, Settings
 } from 'lucide-react'
@@ -10,7 +10,6 @@ import { logout } from '../../store/authSlice'
 import api from '../../services/api'
 
 const navItems = [
-  { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true, roles: ['Admin'] },
   { path: '/admin/san-pham', icon: Package, label: 'Sản phẩm', roles: ['Admin', 'Kho'] },
   { path: '/admin/danh-muc', icon: FolderOpen, label: 'Danh mục', roles: ['Admin'] },
   { path: '/admin/don-hang', icon: ShoppingBag, label: 'Đơn hàng', roles: ['Admin', 'CSKH', 'Kho'] },
@@ -45,9 +44,9 @@ export default function AdminLayout() {
     }).catch(() => {})
   }, [location.pathname])
 
-  // Staff without Admin role land on their first allowed page instead of the Admin-only dashboard
+  // Always redirect /admin to first allowed page
   useEffect(() => {
-    if (location.pathname === '/admin' && !roles.includes('Admin') && visibleNavItems.length > 0) {
+    if (location.pathname === '/admin' && visibleNavItems.length > 0) {
       navigate(visibleNavItems[0].path, { replace: true })
     }
   }, [location.pathname, roles])

@@ -32,6 +32,7 @@ public class OrderRepository : IOrderRepository
         PaymentMethod.COD => "Tiền mặt khi nhận hàng",
         PaymentMethod.BankTransfer => "Chuyển khoản ngân hàng",
         PaymentMethod.EWallet => "Ví điện tử",
+        PaymentMethod.Wallet => "Ví ShopMeBe",
         _ => "Không xác định"
     };
 

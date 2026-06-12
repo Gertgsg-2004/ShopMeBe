@@ -67,9 +67,7 @@ export default function AdminSettingsPage() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const res = await api.post('/settings/upload-qr', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const res = await api.post('/settings/upload-qr', formData)
       if (res.data?.data?.url) {
         setBankInfo(prev => ({ ...prev, qrImageUrl: res.data.data.url }))
         toast.success('Upload QR thành công')

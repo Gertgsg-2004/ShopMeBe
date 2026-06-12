@@ -21,49 +21,41 @@ public class ReportsController : ControllerBase
 
     [HttpGet("revenue")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetRevenue(
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to,
+        [FromQuery] string? from,
+        [FromQuery] string? to,
         [FromQuery] string groupBy = "day")
     {
-        var fromDate = from ?? DateTime.UtcNow.AddDays(-30);
-        var toDate = to ?? DateTime.UtcNow;
+        var fromDate = (from != null && DateTime.TryParse(from, out var fd)) ? fd.Date : DateTime.UtcNow.AddDays(-30).Date;
+        var toDate = (to != null && DateTime.TryParse(to, out var td)) ? td.Date.AddDays(1) : DateTime.UtcNow.Date.AddDays(1);
 
         var orders = await _db.Orders
             .Where(o => o.Status == OrderStatus.Completed
                         && o.CreatedAt >= fromDate
-                        && o.CreatedAt <= toDate)
+                        && o.CreatedAt < toDate)
             .Select(o => new { o.CreatedAt, o.Total })
             .ToListAsync();
 
-        List<RevenueReportDto> result;
+        List<object> result;
         if (groupBy == "month")
         {
             result = orders
                 .GroupBy(o => new DateTime(o.CreatedAt.Year, o.CreatedAt.Month, 1))
-                .Select(g => new RevenueReportDto
-                {
-                    Date = g.Key,
-                    Revenue = g.Sum(o => o.Total),
-                    Cost = 0,
-                    Profit = g.Sum(o => o.Total),
-                    OrderCount = g.Count()
+                .Select(g => {
+                    var rev = g.Sum(o => o.Total);
+                    return (object)new { date = g.Key.ToString("yyyy-MM"), orders = g.Count(), revenue = rev, cost = 0m, profit = rev, margin = 100.0 };
                 })
-                .OrderBy(r => r.Date)
+                .OrderBy(r => ((dynamic)r).date)
                 .ToList();
         }
         else
         {
             result = orders
                 .GroupBy(o => o.CreatedAt.Date)
-                .Select(g => new RevenueReportDto
-                {
-                    Date = g.Key,
-                    Revenue = g.Sum(o => o.Total),
-                    Cost = 0,
-                    Profit = g.Sum(o => o.Total),
-                    OrderCount = g.Count()
+                .Select(g => {
+                    var rev = g.Sum(o => o.Total);
+                    return (object)new { date = g.Key.ToString("yyyy-MM-dd"), orders = g.Count(), revenue = rev, cost = 0m, profit = rev, margin = 100.0 };
                 })
-                .OrderBy(r => r.Date)
+                .OrderBy(r => ((dynamic)r).date)
                 .ToList();
         }
 
@@ -72,47 +64,41 @@ public class ReportsController : ControllerBase
 
     [HttpGet("top-products")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetTopProducts(
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to,
+        [FromQuery] string? from,
+        [FromQuery] string? to,
         [FromQuery] int limit = 10)
     {
-        var fromDate = from ?? DateTime.UtcNow.AddDays(-30);
-        var toDate = to ?? DateTime.UtcNow;
+        var fromDate = (from != null && DateTime.TryParse(from, out var fd)) ? fd.Date : DateTime.UtcNow.AddDays(-30).Date;
+        var toDate = (to != null && DateTime.TryParse(to, out var td)) ? td.Date.AddDays(1) : DateTime.UtcNow.Date.AddDays(1);
 
-        var result = await _db.OrderItems
+        var rows = await _db.OrderItems
             .Include(i => i.Order)
             .Include(i => i.Product)
             .Where(i => i.Order.Status == OrderStatus.Completed
                         && i.Order.CreatedAt >= fromDate
-                        && i.Order.CreatedAt <= toDate)
+                        && i.Order.CreatedAt < toDate)
             .GroupBy(i => new { i.ProductId, i.Product.Name, i.Product.Sku })
-            .Select(g => new TopProductReportDto
-            {
-                ProductId = g.Key.ProductId,
-                ProductName = g.Key.Name,
-                Sku = g.Key.Sku,
-                QuantitySold = g.Sum(i => i.Quantity),
-                Revenue = g.Sum(i => i.Price * i.Quantity)
-            })
-            .OrderByDescending(r => r.QuantitySold)
+            .Select(g => new { g.Key.ProductId, ProductName = g.Key.Name, Sku = g.Key.Sku, QtyTotal = g.Sum(i => i.Quantity), Rev = g.Sum(i => i.Price * i.Quantity) })
+            .OrderByDescending(r => r.QtyTotal)
             .Take(limit)
             .ToListAsync();
 
+        var result = rows.Select((r, i) => new { rank = i + 1, productId = r.ProductId, productName = r.ProductName, sku = r.Sku, qtySold = r.QtyTotal, revenue = r.Rev });
         return Ok(ApiResponseDto<object>.Ok(result));
     }
 
     [HttpGet("summary")]
     public async Task<ActionResult<ApiResponseDto<ReportSummaryDto>>> GetSummary(
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to)
+        [FromQuery] string? from,
+        [FromQuery] string? to)
     {
-        var fromDate = from ?? DateTime.UtcNow.AddDays(-30);
-        var toDate = to ?? DateTime.UtcNow;
+        var fromDate = (from != null && DateTime.TryParse(from, out var fd)) ? fd.Date : DateTime.UtcNow.AddDays(-30).Date;
+        var toDate = (to != null && DateTime.TryParse(to, out var td)) ? td.Date.AddDays(1) : DateTime.UtcNow.Date.AddDays(1);
 
         var orders = await _db.Orders
             .Where(o => o.Status == OrderStatus.Completed
                         && o.CreatedAt >= fromDate
-                        && o.CreatedAt <= toDate)
+                        && o.CreatedAt < toDate)
             .ToListAsync();
 
         var totalRevenue = orders.Sum(o => o.Total);
@@ -139,24 +125,17 @@ public class ReportsController : ControllerBase
             .Where(p => p.IsActive)
             .Select(p => new
             {
-                p.Id,
-                p.Name,
-                p.Sku,
-                p.Stock,
-                p.Price,
-                StockValue = p.Stock * p.Price
+                productId = p.Id,
+                productName = p.Name,
+                sku = p.Sku,
+                stock = p.Stock,
+                costPrice = 0m,
+                value = p.Stock * p.Price
             })
             .ToListAsync();
 
-        var totalValue = products.Sum(p => p.StockValue);
-        var totalItems = products.Sum(p => p.Stock);
+        var totalValue = products.Sum(p => p.value);
 
-        return Ok(ApiResponseDto<object>.Ok(new
-        {
-            TotalStockValue = totalValue,
-            TotalItems = totalItems,
-            ProductCount = products.Count,
-            Products = products
-        }));
+        return Ok(ApiResponseDto<object>.Ok(new { totalValue, items = products }));
     }
 }

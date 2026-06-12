@@ -87,6 +87,7 @@ const authSlice = createSlice({
           createdAt: new Date().toISOString(),
         }
         localStorage.setItem('token', action.payload.token)
+        if (action.payload.refreshToken) localStorage.setItem('refreshToken', action.payload.refreshToken)
         localStorage.setItem('user', JSON.stringify(state.user))
         localStorage.setItem('roles', JSON.stringify(action.payload.roles))
       })

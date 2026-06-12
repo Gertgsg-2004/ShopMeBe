@@ -3,7 +3,8 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react'
 import ProductCard from '../components/product/ProductCard'
 import Pagination from '../components/ui/Pagination'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
+import { ProductGridSkeleton } from '../components/ui/ProductCardSkeleton'
+import { usePageTitle } from '../hooks/usePageTitle'
 import EmptyState from '../components/ui/EmptyState'
 import { productService } from '../services/productService'
 import { categoryService } from '../services/categoryService'
@@ -21,6 +22,7 @@ export default function CategoryPage() {
   const { slug } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const [category, setCategory] = useState<Category | null>(null)
+  usePageTitle(category?.name, category?.description)
   const [products, setProducts] = useState<Product[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
@@ -161,7 +163,7 @@ export default function CategoryPage() {
           </div>
 
           {loading ? (
-            <LoadingSpinner />
+            <ProductGridSkeleton count={8} />
           ) : products.length === 0 ? (
             <EmptyState title="Không có sản phẩm" description="Danh mục này chưa có sản phẩm nào." />
           ) : (

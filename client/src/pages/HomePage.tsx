@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, ShieldCheck, Truck, RefreshCw, Headphones } from 'lucide-react'
 import ProductCard from '../components/product/ProductCard'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
+import { ProductGridSkeleton } from '../components/ui/ProductCardSkeleton'
 import { productService } from '../services/productService'
 import { categoryService } from '../services/categoryService'
 import { Product, Category } from '../types'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const banners = [
   {
@@ -42,6 +43,7 @@ const features = [
 ]
 
 export default function HomePage() {
+  usePageTitle(undefined, 'Shop Mẹ & Bé Ánh Tuyết - đồ bà bầu, đồ sơ sinh, bỉm sữa, đồ chơi chính hãng. Miễn phí vận chuyển đơn từ 500.000đ.')
   const [featured, setFeatured] = useState<Product[]>([])
   const [newProducts, setNewProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -144,7 +146,7 @@ export default function HomePage() {
               Xem tất cả <ArrowRight size={16} />
             </Link>
           </div>
-          {loading ? <LoadingSpinner /> : (
+          {loading ? <ProductGridSkeleton count={8} /> : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {featured.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
@@ -163,7 +165,7 @@ export default function HomePage() {
             Xem tất cả <ArrowRight size={16} />
           </Link>
         </div>
-        {loading ? <LoadingSpinner /> : (
+        {loading ? <ProductGridSkeleton count={8} /> : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {newProducts.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>

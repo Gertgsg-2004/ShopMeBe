@@ -55,6 +55,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
             e.Property(x => x.SalePrice).HasColumnType("decimal(18,2)");
             e.HasOne(x => x.Category).WithMany(x => x.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            // Soft delete: deleted products are hidden from every query automatically
+            e.HasQueryFilter(x => !x.IsDeleted);
         });
 
         builder.Entity<ProductImage>(e =>
@@ -235,7 +237,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             new ShopSettings { Id = 2, Key = "bank_branch", Value = "Chi nhánh Mai Sơn Sơn La" },
             new ShopSettings { Id = 3, Key = "bank_account_no", Value = "1234567890" },
             new ShopSettings { Id = 4, Key = "bank_account_name", Value = "Đỗ Thị Ánh Tuyết" },
-            new ShopSettings { Id = 5, Key = "bank_qr_url", Value = "" }
+            new ShopSettings { Id = 5, Key = "bank_qr_url", Value = "" },
+            new ShopSettings { Id = 6, Key = "shipping_fee", Value = "30000" },
+            new ShopSettings { Id = 7, Key = "free_ship_threshold", Value = "500000" }
         );
 
         builder.Entity<Category>().HasData(

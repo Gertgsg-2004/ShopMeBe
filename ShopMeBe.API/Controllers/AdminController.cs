@@ -325,7 +325,6 @@ public class AdminController : ControllerBase
             return BadRequest(ApiResponseDto<object>.Fail(string.Join(", ", result.Errors.Select(e => e.Description))));
 
         req.Status = "Completed";
-        req.NewPassword = dto.NewPassword;
         req.AdminId = AdminId;
         req.CompletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();

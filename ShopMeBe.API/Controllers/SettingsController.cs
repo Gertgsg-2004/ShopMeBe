@@ -34,6 +34,43 @@ public class SettingsController : ControllerBase
         }));
     }
 
+    [HttpGet("shipping")]
+    public async Task<IActionResult> GetShipping()
+    {
+        var settings = await _context.ShopSettings
+            .Where(s => s.Key == "shipping_fee" || s.Key == "free_ship_threshold")
+            .ToListAsync();
+        var dict = settings.ToDictionary(s => s.Key, s => s.Value);
+        return Ok(ApiResponseDto<object>.Ok(new
+        {
+            shippingFee = decimal.TryParse(dict.GetValueOrDefault("shipping_fee"), out var fee) ? fee : 30000,
+            freeShipThreshold = decimal.TryParse(dict.GetValueOrDefault("free_ship_threshold"), out var th) ? th : 500000
+        }));
+    }
+
+    [HttpPut("shipping")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateShipping([FromBody] ShippingSettingsDto dto)
+    {
+        if (dto.ShippingFee < 0 || dto.FreeShipThreshold < 0)
+            return BadRequest(ApiResponseDto<object>.Fail("Giá trị không hợp lệ"));
+
+        var updates = new Dictionary<string, string>
+        {
+            ["shipping_fee"] = dto.ShippingFee.ToString("0"),
+            ["free_ship_threshold"] = dto.FreeShipThreshold.ToString("0"),
+        };
+        var settings = await _context.ShopSettings.Where(s => updates.Keys.Contains(s.Key)).ToListAsync();
+        foreach (var kv in updates)
+        {
+            var s = settings.FirstOrDefault(x => x.Key == kv.Key);
+            if (s != null) s.Value = kv.Value;
+            else _context.ShopSettings.Add(new Core.Entities.ShopSettings { Key = kv.Key, Value = kv.Value });
+        }
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponseDto<object>.Ok(new { }, "Cập nhật phí vận chuyển thành công"));
+    }
+
     [HttpPut("bank-info")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateBankInfo([FromBody] BankInfoDto dto)
@@ -84,6 +121,12 @@ public class SettingsController : ControllerBase
 
         return Ok(ApiResponseDto<object>.Ok(new { url }, "Upload QR thành công"));
     }
+}
+
+public class ShippingSettingsDto
+{
+    public decimal ShippingFee { get; set; }
+    public decimal FreeShipThreshold { get; set; }
 }
 
 public class BankInfoDto

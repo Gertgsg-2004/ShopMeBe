@@ -95,10 +95,15 @@ public class AuthController : ControllerBase
         var token = await _tokenService.GenerateAccessTokenAsync(user);
         var roles = await _userManager.GetRolesAsync(user);
 
+        var refreshToken = _tokenService.GenerateRefreshToken();
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        await _userManager.UpdateAsync(user);
+
         return Ok(ApiResponseDto<AuthResponseDto>.Ok(new AuthResponseDto
         {
             Token = token,
-            RefreshToken = _tokenService.GenerateRefreshToken(),
+            RefreshToken = refreshToken,
             Expiration = DateTime.UtcNow.AddHours(24),
             UserId = user.Id,
             Email = user.Email!,
@@ -106,6 +111,39 @@ public class AuthController : ControllerBase
             Avatar = user.Avatar,
             Roles = roles
         }, "Đăng nhập thành công"));
+    }
+
+    [HttpPost("refresh")]
+    public async Task<ActionResult<ApiResponseDto<AuthResponseDto>>> Refresh([FromBody] RefreshRequestDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.RefreshToken))
+            return BadRequest(ApiResponseDto<AuthResponseDto>.Fail("Thiếu refresh token"));
+
+        var user = await _userManager.Users.FirstOrDefaultAsync(u =>
+            u.RefreshToken == dto.RefreshToken && u.RefreshTokenExpiry > DateTime.UtcNow && u.IsActive);
+        if (user == null)
+            return Unauthorized(ApiResponseDto<AuthResponseDto>.Fail("Refresh token không hợp lệ hoặc đã hết hạn"));
+
+        var token = await _tokenService.GenerateAccessTokenAsync(user);
+        var roles = await _userManager.GetRolesAsync(user);
+
+        // Rotate refresh token on every use
+        var newRefreshToken = _tokenService.GenerateRefreshToken();
+        user.RefreshToken = newRefreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+        await _userManager.UpdateAsync(user);
+
+        return Ok(ApiResponseDto<AuthResponseDto>.Ok(new AuthResponseDto
+        {
+            Token = token,
+            RefreshToken = newRefreshToken,
+            Expiration = DateTime.UtcNow.AddHours(24),
+            UserId = user.Id,
+            Email = user.Email!,
+            FullName = user.FullName,
+            Avatar = user.Avatar,
+            Roles = roles
+        }));
     }
 
     [Authorize]
@@ -186,3 +224,4 @@ public class AuthController : ControllerBase
 }
 
 public class ForgotPasswordRequestDto { public string Phone { get; set; } = string.Empty; }
+public class RefreshRequestDto { public string RefreshToken { get; set; } = string.Empty; }

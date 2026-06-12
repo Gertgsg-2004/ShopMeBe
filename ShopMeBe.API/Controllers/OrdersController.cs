@@ -80,7 +80,12 @@ public class OrdersController : ControllerBase
             couponCode = dto.CouponCode.ToUpper();
         }
 
-        decimal shippingFee = subTotal >= 500000 ? 0 : 30000;
+        var shipSettings = await _context.ShopSettings
+            .Where(s => s.Key == "shipping_fee" || s.Key == "free_ship_threshold")
+            .ToDictionaryAsync(s => s.Key, s => s.Value);
+        decimal baseShippingFee = decimal.TryParse(shipSettings.GetValueOrDefault("shipping_fee"), out var f) ? f : 30000;
+        decimal freeShipThreshold = decimal.TryParse(shipSettings.GetValueOrDefault("free_ship_threshold"), out var t) ? t : 500000;
+        decimal shippingFee = subTotal >= freeShipThreshold ? 0 : baseShippingFee;
         decimal total = subTotal - discount + shippingFee;
 
         // Wallet payment: check balance
@@ -154,6 +159,36 @@ public class OrdersController : ControllerBase
 
         var result = await _orderRepo.GetByIdAsync(created.Id);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, ApiResponseDto<OrderDto>.Ok(result!, "Đặt hàng thành công"));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("lookup")]
+    public async Task<ActionResult<ApiResponseDto<object>>> LookupOrder([FromQuery] string code, [FromQuery] string phone)
+    {
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(phone))
+            return BadRequest(ApiResponseDto<object>.Fail("Vui lòng nhập mã đơn hàng và số điện thoại"));
+
+        var order = await _context.Orders
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.OrderCode == code.Trim().ToUpper() && o.ReceiverPhone == phone.Trim());
+        if (order == null)
+            return NotFound(ApiResponseDto<object>.Fail("Không tìm thấy đơn hàng. Kiểm tra lại mã đơn và số điện thoại."));
+
+        return Ok(ApiResponseDto<object>.Ok(new
+        {
+            order.OrderCode,
+            order.ReceiverName,
+            order.ShippingAddress,
+            Status = (int)order.Status,
+            PaymentStatus = (int)order.PaymentStatus,
+            PaymentMethod = (int)order.PaymentMethod,
+            order.SubTotal,
+            order.ShippingFee,
+            order.DiscountAmount,
+            order.Total,
+            order.CreatedAt,
+            Items = order.Items.Select(i => new { i.ProductName, i.ProductImage, i.Price, i.Quantity })
+        }));
     }
 
     [HttpPost("{id:int}/cancel")]

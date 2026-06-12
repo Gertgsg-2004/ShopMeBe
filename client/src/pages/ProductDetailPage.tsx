@@ -10,13 +10,16 @@ import { formatCurrency, calculateDiscount } from '../utils/format'
 import { useAppDispatch, useAppSelector } from '../hooks/useAppSelector'
 import { addToCart } from '../store/cartSlice'
 import toast from 'react-hot-toast'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function ProductDetailPage() {
   const { slug } = useParams()
   const dispatch = useAppDispatch()
   const { isAuthenticated } = useAppSelector((s) => s.auth)
   const [product, setProduct] = useState<Product | null>(null)
+  usePageTitle(product?.name, product?.shortDescription || product?.description?.slice(0, 160))
   const [related, setRelated] = useState<Product[]>([])
+
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [activeImage, setActiveImage] = useState(0)

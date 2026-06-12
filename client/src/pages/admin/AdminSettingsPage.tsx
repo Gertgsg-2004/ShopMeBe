@@ -17,13 +17,30 @@ export default function AdminSettingsPage() {
   })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [shipping, setShipping] = useState({ shippingFee: 30000, freeShipThreshold: 500000 })
+  const [savingShip, setSavingShip] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     api.get('/settings/bank-info').then(res => {
       if (res.data?.data) setBankInfo(res.data.data)
     }).catch(() => {})
+    api.get('/settings/shipping').then(res => {
+      if (res.data?.data) setShipping(res.data.data)
+    }).catch(() => {})
   }, [])
+
+  const handleSaveShipping = async () => {
+    setSavingShip(true)
+    try {
+      await api.put('/settings/shipping', shipping)
+      toast.success('Đã lưu cài đặt phí vận chuyển')
+    } catch {
+      toast.error('Lưu thất bại')
+    } finally {
+      setSavingShip(false)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -129,6 +146,26 @@ export default function AdminSettingsPage() {
             <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu thông tin'}
           </button>
         </div>
+      </div>
+
+      <div className="card mt-6">
+        <h2 className="font-semibold text-gray-700 mb-4">Phí vận chuyển</h2>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phí ship (đ)</label>
+            <input type="number" min={0} className="input-field" value={shipping.shippingFee}
+              onChange={e => setShipping(p => ({ ...p, shippingFee: Number(e.target.value) }))} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Miễn phí ship từ (đ)</label>
+            <input type="number" min={0} className="input-field" value={shipping.freeShipThreshold}
+              onChange={e => setShipping(p => ({ ...p, freeShipThreshold: Number(e.target.value) }))} />
+          </div>
+        </div>
+        <button onClick={handleSaveShipping} disabled={savingShip}
+          className="btn-primary flex items-center gap-2">
+          <Save size={16} /> {savingShip ? 'Đang lưu...' : 'Lưu phí vận chuyển'}
+        </button>
       </div>
     </div>
   )

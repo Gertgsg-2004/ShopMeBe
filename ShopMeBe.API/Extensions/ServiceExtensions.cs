@@ -39,6 +39,11 @@ public static class ServiceExtensions
 
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration config)
     {
+        var secret = config["JWT:Secret"];
+        if (string.IsNullOrWhiteSpace(secret))
+            throw new InvalidOperationException(
+                "JWT:Secret chưa được cấu hình. Đặt biến môi trường JWT__Secret hoặc thêm vào appsettings.Development.json (không commit secret thật lên Git).");
+
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -54,7 +59,7 @@ public static class ServiceExtensions
                 ValidateIssuerSigningKey = true,
                 ValidIssuer = config["JWT:Issuer"],
                 ValidAudience = config["JWT:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JWT:Secret"]!))
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
             };
         });
         return services;

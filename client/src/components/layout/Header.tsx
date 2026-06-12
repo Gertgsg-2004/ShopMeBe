@@ -180,6 +180,9 @@ export default function Header() {
               {cat.name}
             </Link>
           ))}
+          <Link to="/tra-cuu-don-hang" className="whitespace-nowrap px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-pink-50 rounded-lg transition-colors">
+            Tra cứu đơn
+          </Link>
         </nav>
       </div>
 

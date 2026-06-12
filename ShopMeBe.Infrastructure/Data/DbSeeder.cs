@@ -85,6 +85,22 @@ public static class DbSeeder
             await context.SaveChangesAsync();
         }
 
+        // Seed placeholder images for products that have none (demo/testing)
+        var productsWithoutImages = await context.Products
+            .Include(p => p.Images)
+            .Where(p => !p.Images.Any())
+            .ToListAsync();
+        if (productsWithoutImages.Count > 0)
+        {
+            foreach (var p in productsWithoutImages)
+                p.Images.Add(new Core.Entities.ProductImage
+                {
+                    ImageUrl = $"https://picsum.photos/seed/{p.Slug}/600/600",
+                    IsMain = true
+                });
+            await context.SaveChangesAsync();
+        }
+
         // Seed sample coupon
         if (!await context.Coupons.AnyAsync())
         {

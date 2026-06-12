@@ -35,10 +35,14 @@ export default function CheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [walletBalance, setWalletBalance] = useState(0)
+  const [shipConfig, setShipConfig] = useState({ shippingFee: 30000, freeShipThreshold: 500000 })
 
   useEffect(() => {
     api.get('/wallet').then(res => {
       if (res.data?.data) setWalletBalance(res.data.data.balance || 0)
+    }).catch(() => {})
+    api.get('/settings/shipping').then(res => {
+      if (res.data?.data) setShipConfig(res.data.data)
     }).catch(() => {})
   }, [])
 
@@ -50,7 +54,7 @@ export default function CheckoutPage() {
     return null
   }
 
-  const shippingFee = cart.total >= 500000 ? 0 : 30000
+  const shippingFee = cart.total >= shipConfig.freeShipThreshold ? 0 : shipConfig.shippingFee
   const total = cart.total - couponDiscount + shippingFee
 
   const handleApplyCoupon = async () => {

@@ -16,6 +16,7 @@ public class Product
     public bool IsFeatured { get; set; } = false;
     public bool IsNew { get; set; } = false;
     public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = false;
     public int SoldCount { get; set; } = 0;
     public double AverageRating { get; set; } = 0;
     public int ReviewCount { get; set; } = 0;

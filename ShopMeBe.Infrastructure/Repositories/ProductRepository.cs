@@ -123,6 +123,8 @@ public class ProductRepository : IProductRepository
         var product = await _context.Products.FindAsync(id);
         if (product != null)
         {
+            // Soft delete: keep row for order history, hide from all queries via global filter
+            product.IsDeleted = true;
             product.IsActive = false;
             await _context.SaveChangesAsync();
         }

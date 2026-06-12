@@ -35,55 +35,15 @@ export default function CategoryPage() {
   const maxPrice = searchParams.get('maxPrice') || ''
   const keyword = searchParams.get('keyword') || ''
 
-  // Per-category filter chips — values are keywords matched against product names
-  const FILTERS_BY_CATEGORY: Record<string, { label: string; value: string }[]> = {
-    'do-ba-bau': [
-      { label: '👗 Váy bầu', value: 'váy bầu' },
-      { label: '👖 Quần bầu', value: 'quần bầu' },
-      { label: '👚 Áo bầu', value: 'áo bầu' },
-      { label: '💼 Đồ công sở', value: 'công sở' },
-    ],
-    'do-so-sinh': [
-      { label: '👶 Bodysuit', value: 'bodysuit' },
-      { label: '🧣 Khăn', value: 'khăn' },
-      { label: '🎁 Gift set', value: 'gift set' },
-      { label: '👕 Bộ quần áo', value: 'bộ quần áo' },
-    ],
-    'do-choi': [
-      { label: '🧸 Thảm chơi', value: 'thảm' },
-      { label: '🧩 Xếp hình', value: 'xếp hình' },
-      { label: '🪵 Đồ chơi gỗ', value: 'gỗ' },
-      { label: '🎵 Đồ chơi nhạc', value: 'nhạc' },
-    ],
-    'sua-va-thuc-pham': [
-      { label: '🍼 Sữa bột', value: 'sữa' },
-      { label: '🥣 Ăn dặm', value: 'ăn dặm' },
-      { label: '🌾 Cháo dinh dưỡng', value: 'cháo' },
-    ],
-    'phu-kien': [
-      { label: '🎒 Địu em bé', value: 'địu' },
-      { label: '🛒 Xe đẩy', value: 'xe đẩy' },
-      { label: '🍼 Bình sữa', value: 'bình sữa' },
-      { label: '👜 Túi bỉm', value: 'túi' },
-    ],
-    'bim': [
-      { label: '🍼 Sơ sinh (NB)', value: 'newborn' },
-      { label: 'Size S', value: 'size s' },
-      { label: 'Size M', value: 'size m' },
-      { label: 'Size L', value: 'size l' },
-    ],
-    'quan-ao-thu-dong': [
-      { label: '🧥 Áo khoác', value: 'áo khoác' },
-      { label: '🧸 Bộ nỉ', value: 'nỉ' },
-      { label: '👘 Hoodie', value: 'hoodie' },
-      { label: '👶 Bé trai', value: 'bé trai' },
-      { label: '👧 Bé gái', value: 'bé gái' },
-    ],
-  }
+  // Parse filterConfig JSON from category API response
+  const categoryFilters: { label: string; value: string }[] = (() => {
+    if (!category?.filterConfig) return []
+    try { return JSON.parse(category.filterConfig) } catch { return [] }
+  })()
 
   const productTypes = [
     { label: 'Tất cả', value: '' },
-    ...(FILTERS_BY_CATEGORY[slug ?? ''] ?? []),
+    ...categoryFilters,
   ]
 
   useEffect(() => {

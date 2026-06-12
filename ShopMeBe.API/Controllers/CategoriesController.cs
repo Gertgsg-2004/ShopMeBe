@@ -58,7 +58,8 @@ public class CategoriesController : ControllerBase
             Description = dto.Description,
             ParentId = dto.ParentId,
             SortOrder = dto.SortOrder,
-            IsActive = true
+            IsActive = true,
+            FilterConfig = string.IsNullOrWhiteSpace(dto.FilterConfig) ? null : dto.FilterConfig
         };
 
         if (dto.Image != null && _fileService.IsValidImage(dto.Image))
@@ -83,6 +84,7 @@ public class CategoriesController : ControllerBase
         category.ParentId = dto.ParentId;
         category.SortOrder = dto.SortOrder;
         category.IsActive = dto.IsActive;
+        category.FilterConfig = string.IsNullOrWhiteSpace(dto.FilterConfig) ? null : dto.FilterConfig;
 
         if (dto.Image != null && _fileService.IsValidImage(dto.Image))
             category.ImageUrl = await _fileService.UploadImageAsync(dto.Image, "categories");
@@ -112,4 +114,5 @@ public class CategoryCreateDto
     public int SortOrder { get; set; } = 0;
     public bool IsActive { get; set; } = true;
     public Microsoft.AspNetCore.Http.IFormFile? Image { get; set; }
+    public string? FilterConfig { get; set; }
 }

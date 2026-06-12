@@ -31,6 +31,7 @@ export interface Category {
   sortOrder: number
   isActive: boolean
   productCount: number
+  filterConfig?: string   // JSON: [{label, value}]
   children: Category[]
 }
 

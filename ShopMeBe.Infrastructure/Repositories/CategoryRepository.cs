@@ -26,7 +26,8 @@ public class CategoryRepository : ICategoryRepository
         ParentName = c.Parent?.Name,
         SortOrder = c.SortOrder,
         IsActive = c.IsActive,
-        ProductCount = productCount
+        ProductCount = productCount,
+        FilterConfig = c.FilterConfig
     };
 
     public async Task<List<CategoryDto>> GetAllAsync()

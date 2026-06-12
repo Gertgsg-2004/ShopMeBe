@@ -12,5 +12,6 @@ public class CategoryDto
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
     public int ProductCount { get; set; }
+    public string? FilterConfig { get; set; }
     public List<CategoryDto> Children { get; set; } = new();
 }

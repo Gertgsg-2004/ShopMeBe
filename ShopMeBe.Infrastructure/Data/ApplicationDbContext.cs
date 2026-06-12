@@ -44,6 +44,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.Slug).IsRequired().HasMaxLength(200);
             e.HasIndex(x => x.Slug).IsUnique();
             e.HasOne(x => x.Parent).WithMany(x => x.Children).HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.FilterConfig).HasColumnType("nvarchar(max)");
         });
 
         builder.Entity<Product>(e =>
@@ -241,13 +242,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         );
 
         builder.Entity<Category>().HasData(
-            new Category { Id = 1, Name = "Đồ bà bầu", Slug = "do-ba-bau", Description = "Thời trang và phụ kiện cho bà bầu", SortOrder = 1, IsActive = true },
-            new Category { Id = 2, Name = "Đồ sơ sinh", Slug = "do-so-sinh", Description = "Sản phẩm dành cho trẻ sơ sinh", SortOrder = 2, IsActive = true },
-            new Category { Id = 3, Name = "Đồ chơi", Slug = "do-choi", Description = "Đồ chơi giáo dục cho trẻ", SortOrder = 3, IsActive = true },
-            new Category { Id = 4, Name = "Sữa và thực phẩm", Slug = "sua-va-thuc-pham", Description = "Sữa bột và thực phẩm bổ sung", SortOrder = 4, IsActive = true },
-            new Category { Id = 5, Name = "Phụ kiện", Slug = "phu-kien", Description = "Phụ kiện mẹ và bé", SortOrder = 5, IsActive = true },
-            new Category { Id = 6, Name = "Bỉm", Slug = "bim", Description = "Bỉm tã cho bé các loại", SortOrder = 6, IsActive = true },
-            new Category { Id = 7, Name = "Quần áo thu đông", Slug = "quan-ao-thu-dong", Description = "Quần áo thu đông ấm áp cho mẹ và bé", SortOrder = 7, IsActive = true }
+            new Category { Id = 1, Name = "Đồ bà bầu", Slug = "do-ba-bau", Description = "Thời trang và phụ kiện cho bà bầu", SortOrder = 1, IsActive = true,
+                FilterConfig = """[{"label":"👗 Váy bầu","value":"váy bầu"},{"label":"👖 Quần bầu","value":"quần bầu"},{"label":"👚 Áo bầu","value":"áo bầu"},{"label":"💼 Đồ công sở","value":"công sở"}]""" },
+            new Category { Id = 2, Name = "Đồ sơ sinh", Slug = "do-so-sinh", Description = "Sản phẩm dành cho trẻ sơ sinh", SortOrder = 2, IsActive = true,
+                FilterConfig = """[{"label":"🩱 Bodysuit","value":"bodysuit"},{"label":"🧣 Khăn","value":"khăn"},{"label":"🎁 Gift set","value":"gift set"},{"label":"👕 Bộ quần áo","value":"bộ quần áo"}]""" },
+            new Category { Id = 3, Name = "Đồ chơi", Slug = "do-choi", Description = "Đồ chơi giáo dục cho trẻ", SortOrder = 3, IsActive = true,
+                FilterConfig = """[{"label":"🎪 Thảm chơi","value":"thảm"},{"label":"🧩 Xếp hình","value":"xếp hình"},{"label":"🪵 Đồ chơi gỗ","value":"gỗ"},{"label":"🎵 Đồ chơi nhạc","value":"nhạc"}]""" },
+            new Category { Id = 4, Name = "Sữa và thực phẩm", Slug = "sua-va-thuc-pham", Description = "Sữa bột và thực phẩm bổ sung", SortOrder = 4, IsActive = true,
+                FilterConfig = """[{"label":"🥛 Sữa bột","value":"sữa"},{"label":"🥣 Ăn dặm","value":"ăn dặm"},{"label":"🌾 Cháo","value":"cháo"}]""" },
+            new Category { Id = 5, Name = "Phụ kiện", Slug = "phu-kien", Description = "Phụ kiện mẹ và bé", SortOrder = 5, IsActive = true,
+                FilterConfig = """[{"label":"🎽 Địu em bé","value":"địu"},{"label":"🛒 Xe đẩy","value":"xe đẩy"},{"label":"🍼 Bình sữa","value":"bình sữa"},{"label":"👜 Túi bỉm","value":"túi"}]""" },
+            new Category { Id = 6, Name = "Bỉm", Slug = "bim", Description = "Bỉm tã cho bé các loại", SortOrder = 6, IsActive = true,
+                FilterConfig = """[{"label":"🌱 Sơ sinh (NB)","value":"newborn"},{"label":"S (4-8kg)","value":"size s"},{"label":"M (7-12kg)","value":"size m"},{"label":"L (9-14kg)","value":"size l"}]""" },
+            new Category { Id = 7, Name = "Quần áo thu đông", Slug = "quan-ao-thu-dong", Description = "Quần áo thu đông ấm áp cho mẹ và bé", SortOrder = 7, IsActive = true,
+                FilterConfig = """[{"label":"🧥 Áo khoác","value":"áo khoác"},{"label":"🧶 Bộ nỉ","value":"nỉ"},{"label":"👘 Hoodie","value":"hoodie"},{"label":"🧒 Bé trai","value":"bé trai"},{"label":"👧 Bé gái","value":"bé gái"}]""" },
+            new Category { Id = 8, Name = "Quần áo hè", Slug = "quan-ao-he", Description = "Quần áo mùa hè thoáng mát cho mẹ và bé", SortOrder = 8, IsActive = true,
+                FilterConfig = """[{"label":"👙 Đồ mát","value":"mát"},{"label":"🩳 Quần short","value":"short"},{"label":"👚 Áo phông","value":"áo phông"},{"label":"🌻 Đầm hè","value":"đầm"},{"label":"🧒 Bé trai","value":"bé trai"},{"label":"👧 Bé gái","value":"bé gái"}]""" }
         );
     }
 }

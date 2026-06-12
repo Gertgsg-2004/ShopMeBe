@@ -77,6 +77,11 @@ public static class DbSeeder
                 new Core.Entities.Product { Name = "Bỉm Huggies DryPants size M 62 miếng", Slug = "bim-huggies-drypants-size-m-62-mieng", CategoryId = 6, Price = 265000, Stock = 60, Description = "Bỉm quần Huggies DryPants size M cho bé 7-12kg.", IsActive = true, CreatedAt = now },
                 new Core.Entities.Product { Name = "Bỉm Bobby Newborn size NB 60 miếng", Slug = "bim-bobby-newborn-size-nb-60-mieng", CategoryId = 6, Price = 185000, SalePrice = 165000, Stock = 100, Description = "Bỉm Bobby cho trẻ sơ sinh dưới 5kg, mềm mịn an toàn.", IsActive = true, CreatedAt = now },
 
+                // Quần áo hè (categoryId=8)
+                new Core.Entities.Product { Name = "Bộ đồ thun ngắn tay bé gái hoa nhí mùa hè", Slug = "bo-do-thun-ngan-tay-be-gai-hoa-nhi-mua-he", CategoryId = 8, Price = 155000, SalePrice = 129000, Stock = 60, Description = "Bộ đồ mùa hè cotton mỏng nhẹ, họa tiết hoa nhí xinh cho bé gái.", IsActive = true, CreatedAt = now },
+                new Core.Entities.Product { Name = "Quần short jean bé trai hè 2-8 tuổi", Slug = "quan-short-jean-be-trai-he-2-8-tuoi", CategoryId = 8, Price = 125000, Stock = 55, Description = "Quần short jean thoáng mát, thời trang cho bé trai mùa hè.", IsActive = true, CreatedAt = now },
+                new Core.Entities.Product { Name = "Đầm hè bé gái cổ vuông thêu hoa", Slug = "dam-he-be-gai-co-vuong-theu-hoa", CategoryId = 8, Price = 185000, SalePrice = 159000, Stock = 40, Description = "Đầm hè nhẹ nhàng, cổ vuông thêu hoa tinh tế cho bé gái từ 1-6 tuổi.", IsActive = true, CreatedAt = now },
+
                 // Quần áo thu đông (categoryId=7)
                 new Core.Entities.Product { Name = "Bộ áo khoác lót lông bé trai 0-2 tuổi", Slug = "bo-ao-khoac-lot-long-be-trai-0-2-tuoi", CategoryId = 7, Price = 245000, SalePrice = 209000, Stock = 45, Description = "Bộ áo khoác lót lông ấm áp cho bé trai mùa đông.", IsActive = true, CreatedAt = now },
                 new Core.Entities.Product { Name = "Bộ đồ nỉ thu đông bé gái họa tiết gấu", Slug = "bo-do-ni-thu-dong-be-gai-hoa-tiet-gau", CategoryId = 7, Price = 220000, Stock = 50, Description = "Bộ đồ nỉ mềm mịn, ấm áp, họa tiết gấu cute cho bé gái.", IsActive = true, CreatedAt = now },

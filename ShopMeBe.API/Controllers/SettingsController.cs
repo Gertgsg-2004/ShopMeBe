@@ -110,7 +110,8 @@ public class SettingsController : ControllerBase
         if (file.Length > 5 * 1024 * 1024)
             return BadRequest(ApiResponseDto<object>.Fail("Ảnh không được vượt quá 5MB"));
 
-        var uploadsPath = Path.Combine(_env.WebRootPath, "uploads", "qr");
+        var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var uploadsPath = Path.Combine(webRoot, "uploads", "qr");
         Directory.CreateDirectory(uploadsPath);
 
         var fileName = $"bank-qr{ext}";

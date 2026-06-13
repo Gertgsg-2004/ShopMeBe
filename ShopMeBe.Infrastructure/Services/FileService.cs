@@ -17,7 +17,8 @@ public class FileService : IFileService
 
     public async Task<string> UploadImageAsync(IFormFile file, string folder = "products")
     {
-        var uploadsPath = Path.Combine(_env.WebRootPath, "uploads", folder);
+        var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var uploadsPath = Path.Combine(webRoot, "uploads", folder);
         if (!Directory.Exists(uploadsPath))
             Directory.CreateDirectory(uploadsPath);
 
@@ -35,7 +36,8 @@ public class FileService : IFileService
     {
         if (string.IsNullOrEmpty(imageUrl)) return Task.CompletedTask;
 
-        var filePath = Path.Combine(_env.WebRootPath, imageUrl.TrimStart('/'));
+        var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var filePath = Path.Combine(webRoot, imageUrl.TrimStart('/'));
         if (File.Exists(filePath))
             File.Delete(filePath);
 

@@ -31,6 +31,7 @@ public class ProductRepository : IProductRepository
         ShortDescription = p.ShortDescription,
         Price = p.Price,
         SalePrice = p.SalePrice,
+        CostPrice = p.CostPrice,
         Stock = p.Stock,
         Sku = p.Sku,
         CategoryId = p.CategoryId,
@@ -51,7 +52,9 @@ public class ProductRepository : IProductRepository
         var query = BaseQuery().Where(p => p.IsActive);
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
-            query = query.Where(p => p.Name.Contains(filter.Search) || (p.Description != null && p.Description.Contains(filter.Search)));
+            query = query.Where(p => p.Name.Contains(filter.Search)
+                                     || (p.Sku != null && p.Sku.Contains(filter.Search))
+                                     || (p.Description != null && p.Description.Contains(filter.Search)));
 
         if (filter.CategoryId.HasValue)
             query = query.Where(p => p.CategoryId == filter.CategoryId.Value);

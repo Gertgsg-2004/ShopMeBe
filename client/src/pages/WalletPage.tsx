@@ -89,18 +89,26 @@ export default function WalletPage() {
 
   useEffect(() => { fetchWallet() }, [])
 
-  const handleConfirmAmount = async (e: React.FormEvent) => {
+  // Step 1: chỉ hiển thị thông tin chuyển khoản, KHÔNG gửi yêu cầu về admin
+  const handleConfirmAmount = (e: React.FormEvent) => {
     e.preventDefault()
     const value = parseFloat(amount)
     if (!value || value < 10000) {
       toast.error('Số tiền nạp tối thiểu là 10.000đ')
       return
     }
+    setConfirmedAmount(value)
+    setStep('info')
+  }
+
+  // Step 2: chỉ khi khách bấm "Tôi đã chuyển khoản" mới gửi yêu cầu để admin xử lý
+  const handleConfirmTransfer = async () => {
     setSubmitting(true)
     try {
-      await api.post('/wallet/topup-request', { amount: value })
-      setConfirmedAmount(value)
-      setStep('info')
+      await api.post('/wallet/topup-request', { amount: confirmedAmount })
+      toast.success('Đã gửi yêu cầu. Admin sẽ xác nhận và cộng tiền vào ví của bạn.')
+      setStep('select')
+      setAmount('')
       fetchWallet()
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra')
@@ -184,15 +192,15 @@ export default function WalletPage() {
                 </button>
               ))}
             </div>
-            <button type="submit" disabled={submitting} className="btn-primary w-full justify-center">
-              {submitting ? 'Đang xử lý...' : 'Xác nhận và xem thông tin chuyển khoản'}
+            <button type="submit" className="btn-primary w-full justify-center">
+              Xem thông tin chuyển khoản
             </button>
           </form>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-xl p-3">
-              <CheckCircle2 size={18} className="text-green-500 shrink-0" />
-              <p className="text-sm">Yêu cầu nạp <strong>{formatCurrency(confirmedAmount)}</strong> đã được ghi nhận. Vui lòng chuyển khoản theo thông tin bên dưới.</p>
+            <div className="flex items-center gap-2 text-blue-700 bg-blue-50 rounded-xl p-3">
+              <Clock size={18} className="text-blue-500 shrink-0" />
+              <p className="text-sm">Vui lòng chuyển khoản <strong>{formatCurrency(confirmedAmount)}</strong> theo thông tin bên dưới. Sau khi chuyển xong, bấm <strong>"Tôi đã chuyển khoản"</strong> để gửi yêu cầu cho admin xác nhận.</p>
             </div>
 
             {/* QR Code */}
@@ -237,9 +245,13 @@ export default function WalletPage() {
               </div>
             </div>
 
+            <button onClick={handleConfirmTransfer} disabled={submitting}
+              className="btn-primary w-full justify-center">
+              <CheckCircle2 size={16} /> {submitting ? 'Đang gửi...' : 'Tôi đã chuyển khoản'}
+            </button>
             <button onClick={() => { setStep('select'); setAmount('') }}
               className="btn-secondary w-full justify-center text-sm">
-              Tạo yêu cầu khác
+              Hủy / Tạo yêu cầu khác
             </button>
           </div>
         )}

@@ -22,10 +22,18 @@ public class ProductsController : ControllerBase
         _fileService = fileService;
     }
 
+    // Giá vốn chỉ admin được xem — ẩn với khách hàng / nhân viên khác
+    private void StripCostIfNotAdmin(ProductDto? p)
+    {
+        if (p != null && !User.IsInRole("Admin")) p.CostPrice = null;
+    }
+
     [HttpGet]
     public async Task<ActionResult<ApiResponseDto<PagedResultDto<ProductDto>>>> GetProducts([FromQuery] ProductFilterDto filter)
     {
         var result = await _productRepo.GetProductsAsync(filter);
+        if (!User.IsInRole("Admin"))
+            foreach (var p in result.Items) p.CostPrice = null;
         return Ok(ApiResponseDto<PagedResultDto<ProductDto>>.Ok(result));
     }
 
@@ -48,6 +56,7 @@ public class ProductsController : ControllerBase
     {
         var product = await _productRepo.GetProductByIdAsync(id);
         if (product == null) return NotFound(ApiResponseDto<ProductDto>.Fail("Không tìm thấy sản phẩm"));
+        StripCostIfNotAdmin(product);
         return Ok(ApiResponseDto<ProductDto>.Ok(product));
     }
 
@@ -56,6 +65,7 @@ public class ProductsController : ControllerBase
     {
         var product = await _productRepo.GetProductBySlugAsync(slug);
         if (product == null) return NotFound(ApiResponseDto<ProductDto>.Fail("Không tìm thấy sản phẩm"));
+        StripCostIfNotAdmin(product);
         return Ok(ApiResponseDto<ProductDto>.Ok(product));
     }
 
@@ -82,6 +92,7 @@ public class ProductsController : ControllerBase
             ShortDescription = dto.ShortDescription,
             Price = dto.Price,
             SalePrice = dto.SalePrice,
+            CostPrice = dto.CostPrice,
             Stock = dto.Stock,
             Sku = dto.Sku,
             CategoryId = dto.CategoryId,
@@ -128,6 +139,7 @@ public class ProductsController : ControllerBase
             ShortDescription = dto.ShortDescription,
             Price = dto.Price,
             SalePrice = dto.SalePrice,
+            CostPrice = dto.CostPrice,
             Stock = dto.Stock,
             Sku = dto.Sku,
             CategoryId = dto.CategoryId,

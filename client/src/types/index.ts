@@ -43,6 +43,7 @@ export interface Product {
   shortDescription?: string
   price: number
   salePrice?: number
+  costPrice?: number | null
   displayPrice: number
   stock: number
   sku?: string

@@ -9,6 +9,7 @@ public class Product
     public string? ShortDescription { get; set; }
     public decimal Price { get; set; }
     public decimal? SalePrice { get; set; }
+    public decimal CostPrice { get; set; } = 0; // Giá vốn (giá nhập) - chỉ admin xem, dùng cho báo cáo lợi nhuận
     public int Stock { get; set; } = 0;
     public string? Sku { get; set; }
     public int CategoryId { get; set; }

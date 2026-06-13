@@ -27,7 +27,7 @@ export default function AdminProductsPage() {
 
   const [form, setForm] = useState({
     name: '', description: '', shortDescription: '',
-    price: '', salePrice: '', stock: '', sku: '',
+    price: '', salePrice: '', costPrice: '', stock: '', sku: '',
     categoryId: '', isFeatured: false, isNew: false, isActive: true,
   })
 
@@ -55,7 +55,7 @@ export default function AdminProductsPage() {
 
   const openCreate = () => {
     setEditingProduct(null)
-    setForm({ name: '', description: '', shortDescription: '', price: '', salePrice: '', stock: '', sku: '', categoryId: '', isFeatured: false, isNew: false, isActive: true })
+    setForm({ name: '', description: '', shortDescription: '', price: '', salePrice: '', costPrice: '', stock: '', sku: '', categoryId: '', isFeatured: false, isNew: false, isActive: true })
     setPreviewImages([])
     setShowModal(true)
   }
@@ -64,7 +64,7 @@ export default function AdminProductsPage() {
     setEditingProduct(p)
     setForm({
       name: p.name, description: p.description || '', shortDescription: p.shortDescription || '',
-      price: p.price.toString(), salePrice: p.salePrice?.toString() || '', stock: p.stock.toString(),
+      price: p.price.toString(), salePrice: p.salePrice?.toString() || '', costPrice: p.costPrice != null ? p.costPrice.toString() : '', stock: p.stock.toString(),
       sku: p.sku || '', categoryId: p.categoryId.toString(), isFeatured: p.isFeatured, isNew: p.isNew, isActive: p.isActive,
     })
     setPreviewImages(p.imageUrls)
@@ -84,7 +84,8 @@ export default function AdminProductsPage() {
     setSubmitting(true)
     try {
       const fd = new FormData()
-      Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)))
+      const payload = { ...form, costPrice: form.costPrice === '' ? '0' : form.costPrice }
+      Object.entries(payload).forEach(([k, v]) => fd.append(k, String(v)))
       if (fileInputRef.current?.files) {
         Array.from(fileInputRef.current.files).forEach((f) => fd.append('images', f))
       }
@@ -133,7 +134,7 @@ export default function AdminProductsPage() {
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            placeholder="Tìm kiếm sản phẩm..." className="input-field pl-9" />
+            placeholder="Tìm theo tên hàng hoặc mã hàng (mã vạch / SKU)..." className="input-field pl-9" />
         </div>
       </div>
 
@@ -143,7 +144,7 @@ export default function AdminProductsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  {['Sản phẩm', 'Danh mục', 'Giá', 'Tồn kho', 'Đã bán', 'Trạng thái', 'Thao tác'].map((h) => (
+                  {['Sản phẩm', 'Danh mục', 'Giá bán', 'Giá vốn', 'Tồn kho', 'Đã bán', 'Trạng thái', 'Thao tác'].map((h) => (
                     <th key={h} className="text-left py-3 px-4 text-gray-500 font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -172,6 +173,9 @@ export default function AdminProductsPage() {
                       {p.salePrice && p.salePrice < p.price && (
                         <p className="text-xs text-gray-400 line-through">{formatCurrency(p.price)}</p>
                       )}
+                    </td>
+                    <td className="py-3 px-4 text-gray-600">
+                      {p.costPrice != null && p.costPrice > 0 ? formatCurrency(p.costPrice) : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="py-3 px-4">
                       <span className={`badge ${p.stock <= 5 ? 'bg-red-100 text-red-600' : p.stock <= 20 ? 'bg-yellow-100 text-yellow-600' : 'bg-green-100 text-green-600'}`}>
@@ -222,13 +226,19 @@ export default function AdminProductsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giá gốc *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giá bán *</label>
                   <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required min="0" className="input-field" placeholder="0" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Giá khuyến mãi</label>
                   <input type="number" value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: e.target.value })} min="0" className="input-field" placeholder="0" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Giá vốn (giá nhập) <span className="text-xs text-orange-500 font-normal">— chỉ admin xem, dùng cho báo cáo lợi nhuận</span>
+                </label>
+                <input type="number" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} min="0" className="input-field" placeholder="0" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

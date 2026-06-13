@@ -9,6 +9,7 @@ public class ProductDto
     public string? ShortDescription { get; set; }
     public decimal Price { get; set; }
     public decimal? SalePrice { get; set; }
+    public decimal? CostPrice { get; set; } // Giá vốn - chỉ trả về cho Admin
     public decimal DisplayPrice => SalePrice.HasValue && SalePrice < Price ? SalePrice.Value : Price;
     public int Stock { get; set; }
     public string? Sku { get; set; }

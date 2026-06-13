@@ -19,6 +19,13 @@ public class ReportsController : ControllerBase
         _db = db;
     }
 
+    private static object BuildRow(string date, int orders, decimal revenue, decimal cost)
+    {
+        var profit = revenue - cost;
+        var margin = revenue > 0 ? (double)(profit / revenue) * 100.0 : 0.0;
+        return new { date, orders, revenue, cost, profit, margin = Math.Round(margin, 1) };
+    }
+
     [HttpGet("revenue")]
     public async Task<ActionResult<ApiResponseDto<object>>> GetRevenue(
         [FromQuery] string? from,
@@ -32,7 +39,13 @@ public class ReportsController : ControllerBase
             .Where(o => o.Status == OrderStatus.Completed
                         && o.CreatedAt >= fromDate
                         && o.CreatedAt < toDate)
-            .Select(o => new { o.CreatedAt, o.Total })
+            .Select(o => new
+            {
+                o.Id,
+                o.CreatedAt,
+                o.Total,
+                Cost = o.Items.Sum(i => (decimal?)(i.Product.CostPrice * i.Quantity)) ?? 0m
+            })
             .ToListAsync();
 
         List<object> result;
@@ -40,10 +53,7 @@ public class ReportsController : ControllerBase
         {
             result = orders
                 .GroupBy(o => new DateTime(o.CreatedAt.Year, o.CreatedAt.Month, 1))
-                .Select(g => {
-                    var rev = g.Sum(o => o.Total);
-                    return (object)new { date = g.Key.ToString("yyyy-MM"), orders = g.Count(), revenue = rev, cost = 0m, profit = rev, margin = 100.0 };
-                })
+                .Select(g => BuildRow(g.Key.ToString("yyyy-MM"), g.Count(), g.Sum(o => o.Total), g.Sum(o => o.Cost)))
                 .OrderBy(r => ((dynamic)r).date)
                 .ToList();
         }
@@ -51,10 +61,7 @@ public class ReportsController : ControllerBase
         {
             result = orders
                 .GroupBy(o => o.CreatedAt.Date)
-                .Select(g => {
-                    var rev = g.Sum(o => o.Total);
-                    return (object)new { date = g.Key.ToString("yyyy-MM-dd"), orders = g.Count(), revenue = rev, cost = 0m, profit = rev, margin = 100.0 };
-                })
+                .Select(g => BuildRow(g.Key.ToString("yyyy-MM-dd"), g.Count(), g.Sum(o => o.Total), g.Sum(o => o.Cost)))
                 .OrderBy(r => ((dynamic)r).date)
                 .ToList();
         }
@@ -99,20 +106,26 @@ public class ReportsController : ControllerBase
             .Where(o => o.Status == OrderStatus.Completed
                         && o.CreatedAt >= fromDate
                         && o.CreatedAt < toDate)
+            .Select(o => new
+            {
+                o.Total,
+                Cost = o.Items.Sum(i => (decimal?)(i.Product.CostPrice * i.Quantity)) ?? 0m
+            })
             .ToListAsync();
 
         var totalRevenue = orders.Sum(o => o.Total);
+        var totalCost = orders.Sum(o => o.Cost);
         var totalOrders = orders.Count;
         var totalProducts = await _db.Products.CountAsync(p => p.IsActive);
 
         var summary = new ReportSummaryDto
         {
             TotalRevenue = totalRevenue,
-            TotalCost = 0,
-            TotalProfit = totalRevenue,
+            TotalCost = totalCost,
+            TotalProfit = totalRevenue - totalCost,
             TotalOrders = totalOrders,
             TotalProducts = totalProducts,
-            ProfitMargin = totalRevenue > 0 ? 100 : 0
+            ProfitMargin = totalRevenue > 0 ? Math.Round((totalRevenue - totalCost) / totalRevenue * 100m, 1) : 0
         };
 
         return Ok(ApiResponseDto<ReportSummaryDto>.Ok(summary));
@@ -129,8 +142,8 @@ public class ReportsController : ControllerBase
                 productName = p.Name,
                 sku = p.Sku,
                 stock = p.Stock,
-                costPrice = 0m,
-                value = p.Stock * p.Price
+                costPrice = p.CostPrice,
+                value = p.Stock * (p.CostPrice > 0 ? p.CostPrice : p.Price)
             })
             .ToListAsync();
 

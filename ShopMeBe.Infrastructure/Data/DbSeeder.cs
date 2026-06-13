@@ -90,6 +90,15 @@ public static class DbSeeder
             await context.SaveChangesAsync();
         }
 
+        // Seed giá vốn mặc định (~70% giá bán) cho sản phẩm chưa có, để báo cáo lợi nhuận có số liệu
+        var productsWithoutCost = await context.Products.Where(p => p.CostPrice == 0).ToListAsync();
+        if (productsWithoutCost.Count > 0)
+        {
+            foreach (var p in productsWithoutCost)
+                p.CostPrice = Math.Round(p.Price * 0.7m, 0);
+            await context.SaveChangesAsync();
+        }
+
         // Seed placeholder images for products that have none (demo/testing)
         var productsWithoutImages = await context.Products
             .Include(p => p.Images)

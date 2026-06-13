@@ -39,8 +39,8 @@ public class WarehouseController : ControllerBase
                 sku = p.Sku,
                 currentStock = p.Stock,
                 price = p.Price,
-                costPrice = 0m,
-                stockValue = p.Stock * p.Price,
+                costPrice = p.CostPrice,
+                stockValue = p.Stock * (p.CostPrice > 0 ? p.CostPrice : p.Price),
                 mainImageUrl = p.Images.Where(i => i.IsMain).Select(i => i.ImageUrl).FirstOrDefault()
                                ?? p.Images.Select(i => i.ImageUrl).FirstOrDefault()
             })

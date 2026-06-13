@@ -181,6 +181,17 @@ public class OrdersController : ControllerBase
                 await _couponRepo.IncrementUsageAsync(couponCode);
 
             await _cartRepo.ClearCartAsync(UserId);
+
+            // Notify admins of new order
+            _context.Notifications.Add(new Notification
+            {
+                Title = $"Đơn hàng mới #{order.OrderCode}",
+                Content = $"Khách hàng vừa đặt đơn hàng #{order.OrderCode} – {total:N0}đ",
+                Type = "AdminAlert",
+                CreatedById = UserId
+            });
+            await _context.SaveChangesAsync();
+
             await transaction.CommitAsync();
         }
         catch

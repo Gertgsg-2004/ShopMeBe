@@ -26,7 +26,7 @@ public class NotificationsController : ControllerBase
     {
         var uid = UserId;
         var notifications = await _db.Notifications
-            .Where(n => n.IsActive && (
+            .Where(n => n.IsActive && n.Type != "AdminAlert" && (
                 n.Type == "System" ||
                 (n.Type == "Personal" && n.TargetUserId == uid) ||
                 n.Type == "Group"))
@@ -53,10 +53,14 @@ public class NotificationsController : ControllerBase
     public async Task<IActionResult> GetUnreadCount()
     {
         var uid = UserId;
+        var isAdmin = User.IsInRole("Admin") || User.IsInRole("CSKH") || User.IsInRole("Ketoan") || User.IsInRole("Kho");
+
         var total = await _db.Notifications.CountAsync(n => n.IsActive && (
-            n.Type == "System" ||
-            (n.Type == "Personal" && n.TargetUserId == uid) ||
-            n.Type == "Group"));
+            (isAdmin && n.Type == "AdminAlert") ||
+            (!isAdmin && (
+                n.Type == "System" ||
+                (n.Type == "Personal" && n.TargetUserId == uid) ||
+                n.Type == "Group"))));
 
         var read = await _db.NotificationReads.CountAsync(r => r.UserId == uid);
         return Ok(ApiResponseDto<object>.Ok(new { unread = Math.Max(0, total - read) }));
@@ -97,16 +101,39 @@ public class NotificationsController : ControllerBase
     // ── Admin endpoints ─────────────────────────────────────────────────────
 
     [HttpGet("admin")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,CSKH,Ketoan,Kho")]
     public async Task<IActionResult> GetAll()
     {
+        var uid = UserId;
         var items = await _db.Notifications
+            .Where(n => n.IsActive)
             .OrderByDescending(n => n.CreatedAt)
             .Select(n => new
             {
                 n.Id, n.Title, n.Content, n.Type, n.TargetUserId, n.TargetGroup,
                 n.CreatedById, n.CreatedAt, n.IsActive,
-                ReadCount = n.ReadBy.Count
+                ReadCount = n.ReadBy.Count,
+                IsRead = n.ReadBy.Any(r => r.UserId == uid)
+            }).ToListAsync();
+
+        return Ok(ApiResponseDto<object>.Ok(items));
+    }
+
+    [HttpGet("admin/alerts")]
+    [Authorize(Roles = "Admin,CSKH,Ketoan,Kho")]
+    public async Task<IActionResult> GetAdminAlerts([FromQuery] int since = 0)
+    {
+        var uid = UserId;
+        var query = _db.Notifications.Where(n => n.IsActive && n.Type == "AdminAlert");
+        if (since > 0) query = query.Where(n => n.Id > since);
+
+        var items = await query
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(20)
+            .Select(n => new
+            {
+                n.Id, n.Title, n.Content, n.CreatedAt,
+                IsRead = n.ReadBy.Any(r => r.UserId == uid)
             }).ToListAsync();
 
         return Ok(ApiResponseDto<object>.Ok(items));

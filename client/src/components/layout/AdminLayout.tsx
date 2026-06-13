@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Package, ShoppingBag, Users, Tag, FolderOpen,
@@ -8,6 +8,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../../hooks/useAppSelector'
 import { logout } from '../../store/authSlice'
 import api from '../../services/api'
+import toast from 'react-hot-toast'
 
 const navItems = [
   { path: '/admin/san-pham', icon: Package, label: 'Sản phẩm', roles: ['Admin', 'Kho'] },
@@ -19,7 +20,7 @@ const navItems = [
   { path: '/admin/nha-cung-cap', icon: Truck, label: 'Nhà cung cấp', roles: ['Admin'] },
   { path: '/admin/tai-chinh', icon: DollarSign, label: 'Tài chính', roles: ['Admin', 'Ketoan'] },
   { path: '/admin/bao-cao', icon: BarChart2, label: 'Báo cáo', roles: ['Admin', 'Ketoan'] },
-  { path: '/admin/thong-bao', icon: Bell, label: 'Thông báo', roles: ['Admin'] },
+  { path: '/admin/thong-bao', icon: Bell, label: 'Thông báo', roles: ['Admin', 'CSKH', 'Ketoan', 'Kho'] },
   { path: '/admin/nhan-vien', icon: Shield, label: 'Nhân viên', roles: ['Admin'] },
   { path: '/admin/cai-dat', icon: Settings, label: 'Cài đặt', roles: ['Admin'] },
 ]
@@ -32,6 +33,7 @@ export default function AdminLayout() {
   const dispatch = useAppDispatch()
   const { user, roles } = useAppSelector((s) => s.auth)
   const visibleNavItems = navItems.filter(item => item.roles.some(r => roles.includes(r)))
+  const lastAlertIdRef = useRef<number>(0)
 
   const handleLogout = () => {
     dispatch(logout())
@@ -43,6 +45,40 @@ export default function AdminLayout() {
       if (res.data?.data) setUnreadCount(res.data.data.unread)
     }).catch(() => {})
   }, [location.pathname])
+
+  // Poll for new admin alerts every 30s and show toasts
+  useEffect(() => {
+    const pollAlerts = async () => {
+      try {
+        const res = await api.get(`/notifications/admin/alerts?since=${lastAlertIdRef.current}`)
+        const alerts: Array<{ id: number; title: string; content: string }> = res.data?.data ?? []
+        if (alerts.length > 0) {
+          const maxId = Math.max(...alerts.map(a => a.id))
+          if (lastAlertIdRef.current === 0) {
+            lastAlertIdRef.current = maxId
+            return
+          }
+          lastAlertIdRef.current = maxId
+          alerts.forEach(a => {
+            toast(
+              (t) => (
+                <div onClick={() => { toast.dismiss(t.id); navigate('/admin/thong-bao') }} className="cursor-pointer">
+                  <p className="font-semibold text-sm">{a.title}</p>
+                  <p className="text-xs text-gray-600 mt-0.5">{a.content}</p>
+                </div>
+              ),
+              { icon: '🔔', duration: 6000 }
+            )
+          })
+          setUnreadCount(prev => prev + alerts.length)
+        }
+      } catch {}
+    }
+
+    pollAlerts()
+    const interval = setInterval(pollAlerts, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Always redirect /admin to first allowed page
   useEffect(() => {

@@ -217,6 +217,15 @@ public class AuthController : ControllerBase
             return Ok(ApiResponseDto<object>.Ok(new { }, "Yêu cầu đặt lại mật khẩu đã được gửi, vui lòng chờ admin xử lý"));
 
         _context.PasswordResetRequests.Add(new PasswordResetRequest { UserId = user.Id });
+
+        _context.Notifications.Add(new Notification
+        {
+            Title = "Yêu cầu đặt lại mật khẩu",
+            Content = $"Khách hàng {user.FullName ?? user.Phone} (SĐT: {user.Phone}) yêu cầu đặt lại mật khẩu",
+            Type = "AdminAlert",
+            CreatedById = user.Id
+        });
+
         await _context.SaveChangesAsync();
 
         return Ok(ApiResponseDto<object>.Ok(new { }, "Yêu cầu đã được gửi. Admin sẽ xử lý và thông báo qua số điện thoại của bạn."));

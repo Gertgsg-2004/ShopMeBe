@@ -72,6 +72,15 @@ public class WalletController : ControllerBase
 
         var topUp = new WalletTopUp { UserId = UserId, Amount = dto.Amount };
         _db.WalletTopUps.Add(topUp);
+
+        _db.Notifications.Add(new Notification
+        {
+            Title = "Yêu cầu nạp tiền mới",
+            Content = $"Khách hàng yêu cầu nạp {dto.Amount:N0}đ vào ví – cần xác nhận chuyển khoản",
+            Type = "AdminAlert",
+            CreatedById = UserId!
+        });
+
         await _db.SaveChangesAsync();
 
         return Ok(ApiResponseDto<object>.Ok(new { topUp.Id, topUp.Amount }, "Yêu cầu nạp tiền đã được ghi nhận. Vui lòng chuyển khoản đúng số tiền và nội dung để được xử lý nhanh."));

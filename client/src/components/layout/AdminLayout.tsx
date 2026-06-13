@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Package, ShoppingBag, Users, Tag, FolderOpen,
@@ -8,76 +8,58 @@ import {
 import { useAppDispatch, useAppSelector } from '../../hooks/useAppSelector'
 import { logout } from '../../store/authSlice'
 import api from '../../services/api'
-import toast from 'react-hot-toast'
 
 const navItems = [
   { path: '/admin/san-pham', icon: Package, label: 'Sản phẩm', roles: ['Admin', 'Kho'] },
   { path: '/admin/danh-muc', icon: FolderOpen, label: 'Danh mục', roles: ['Admin'] },
-  { path: '/admin/don-hang', icon: ShoppingBag, label: 'Đơn hàng', roles: ['Admin', 'CSKH', 'Kho'] },
-  { path: '/admin/khach-hang', icon: Users, label: 'Khách hàng', roles: ['Admin', 'CSKH'] },
+  { path: '/admin/don-hang', icon: ShoppingBag, label: 'Đơn hàng', roles: ['Admin', 'CSKH', 'Kho'], badgeKey: 'pendingOrders' },
+  { path: '/admin/khach-hang', icon: Users, label: 'Khách hàng', roles: ['Admin', 'CSKH'], badgeKey: 'pendingResets' },
   { path: '/admin/khuyen-mai', icon: Tag, label: 'Khuyến mãi', roles: ['Admin'] },
   { path: '/admin/kho-hang', icon: Warehouse, label: 'Kho hàng', roles: ['Admin', 'Kho'] },
   { path: '/admin/nha-cung-cap', icon: Truck, label: 'Nhà cung cấp', roles: ['Admin'] },
-  { path: '/admin/tai-chinh', icon: DollarSign, label: 'Tài chính', roles: ['Admin', 'Ketoan'] },
+  { path: '/admin/tai-chinh', icon: DollarSign, label: 'Tài chính', roles: ['Admin', 'Ketoan'], badgeKey: 'pendingTopUps' },
   { path: '/admin/bao-cao', icon: BarChart2, label: 'Báo cáo', roles: ['Admin', 'Ketoan'] },
-  { path: '/admin/thong-bao', icon: Bell, label: 'Thông báo', roles: ['Admin', 'CSKH', 'Ketoan', 'Kho'] },
+  { path: '/admin/thong-bao', icon: Bell, label: 'Thông báo', roles: ['Admin'] },
   { path: '/admin/nhan-vien', icon: Shield, label: 'Nhân viên', roles: ['Admin'] },
   { path: '/admin/cai-dat', icon: Settings, label: 'Cài đặt', roles: ['Admin'] },
-]
+] as const
+
+type BadgeKey = 'pendingOrders' | 'pendingTopUps' | 'pendingResets'
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [pendingCounts, setPendingCounts] = useState<Record<BadgeKey, number>>({
+    pendingOrders: 0, pendingTopUps: 0, pendingResets: 0
+  })
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { user, roles } = useAppSelector((s) => s.auth)
   const visibleNavItems = navItems.filter(item => item.roles.some(r => roles.includes(r)))
-  const lastAlertIdRef = useRef<number>(0)
 
   const handleLogout = () => {
     dispatch(logout())
     navigate('/')
   }
 
+  // Notification bell unread count
   useEffect(() => {
     api.get('/notifications/unread-count').then(res => {
       if (res.data?.data) setUnreadCount(res.data.data.unread)
     }).catch(() => {})
   }, [location.pathname])
 
-  // Poll for new admin alerts every 30s and show toasts
+  // Poll pending counts every 30s to show red badges on nav items
   useEffect(() => {
-    const pollAlerts = async () => {
-      try {
-        const res = await api.get(`/notifications/admin/alerts?since=${lastAlertIdRef.current}`)
-        const alerts: Array<{ id: number; title: string; content: string }> = res.data?.data ?? []
-        if (alerts.length > 0) {
-          const maxId = Math.max(...alerts.map(a => a.id))
-          if (lastAlertIdRef.current === 0) {
-            lastAlertIdRef.current = maxId
-            return
-          }
-          lastAlertIdRef.current = maxId
-          alerts.forEach(a => {
-            toast(
-              (t) => (
-                <div onClick={() => { toast.dismiss(t.id); navigate('/admin/thong-bao') }} className="cursor-pointer">
-                  <p className="font-semibold text-sm">{a.title}</p>
-                  <p className="text-xs text-gray-600 mt-0.5">{a.content}</p>
-                </div>
-              ),
-              { icon: '🔔', duration: 6000 }
-            )
-          })
-          setUnreadCount(prev => prev + alerts.length)
-        }
-      } catch {}
+    const poll = () => {
+      api.get('/admin/pending-counts').then(res => {
+        if (res.data?.data) setPendingCounts(res.data.data)
+      }).catch(() => {})
     }
-
-    pollAlerts()
-    const interval = setInterval(pollAlerts, 30000)
-    return () => clearInterval(interval)
+    poll()
+    const id = setInterval(poll, 30000)
+    return () => clearInterval(id)
   }, [])
 
   // Always redirect /admin to first allowed page
@@ -88,7 +70,7 @@ export default function AdminLayout() {
   }, [location.pathname, roles])
 
   const currentLabel = navItems.find(n =>
-    n.exact ? location.pathname === n.path : location.pathname === n.path || location.pathname.startsWith(n.path + '/')
+    location.pathname === n.path || location.pathname.startsWith(n.path + '/')
   )?.label ?? 'Quản trị'
 
   return (
@@ -108,18 +90,17 @@ export default function AdminLayout() {
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {visibleNavItems.map((item) => {
-            const active = item.exact
-              ? location.pathname === item.path
-              : location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+            const active = location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+            const badgeCount = (item as any).badgeKey ? pendingCounts[(item as any).badgeKey as BadgeKey] : 0
             return (
               <Link key={item.path} to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative ${active ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'}`}>
                 <item.icon size={18} className={active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600'} />
                 {sidebarOpen && <span>{item.label}</span>}
                 {sidebarOpen && active && <ChevronRight size={14} className="ml-auto text-primary-400" />}
-                {item.path === '/admin/thong-bao' && unreadCount > 0 && (
-                  <span className={`absolute ${sidebarOpen ? 'right-8' : 'right-1 top-1'} bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1`}>
-                    {unreadCount}
+                {badgeCount > 0 && (
+                  <span className={`absolute ${sidebarOpen ? 'right-3' : 'right-1 top-1'} bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1`}>
+                    {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
                 )}
               </Link>

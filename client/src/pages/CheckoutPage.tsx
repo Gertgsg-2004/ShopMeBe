@@ -148,7 +148,6 @@ export default function CheckoutPage() {
             <div className="space-y-3">
               {[
                 { value: 0, label: 'Tiền mặt khi nhận hàng (COD)', icon: '💵', desc: 'Thanh toán khi nhận được hàng' },
-                { value: 1, label: 'Chuyển khoản ngân hàng', icon: '🏦', desc: 'STK: 1234567890 - Vietcombank - Đỗ Thị Ánh Tuyết' },
                 { value: 3, label: 'Thanh toán bằng ví', icon: '👛', desc: `Số dư: ${formatCurrency(walletBalance)}${walletBalance < total ? ' (không đủ)' : ''}` },
               ].map((method) => (
                 <label key={method.value} className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${Number(paymentMethod) === method.value ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-primary-200'} ${method.value === 3 && walletBalance < total ? 'opacity-50' : ''}`}>

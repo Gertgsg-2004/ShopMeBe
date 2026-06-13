@@ -62,6 +62,7 @@ public class OrderRepository : IOrderRepository
             ProductId = i.ProductId,
             ProductName = i.ProductName,
             ProductImage = i.ProductImage,
+            Sku = i.Product?.Sku,
             Price = i.Price,
             Quantity = i.Quantity,
             SubTotal = i.Price * i.Quantity
@@ -70,7 +71,7 @@ public class OrderRepository : IOrderRepository
 
     public async Task<PagedResultDto<OrderDto>> GetOrdersAsync(string? userId, int page, int pageSize)
     {
-        var query = _context.Orders.Include(o => o.Items).AsQueryable();
+        var query = _context.Orders.Include(o => o.Items).ThenInclude(i => i.Product).AsQueryable();
 
         if (!string.IsNullOrEmpty(userId))
             query = query.Where(o => o.UserId == userId);

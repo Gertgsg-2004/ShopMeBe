@@ -127,6 +127,7 @@ export interface OrderItem {
   productId: number
   productName: string
   productImage?: string
+  sku?: string
   price: number
   quantity: number
   subTotal: number

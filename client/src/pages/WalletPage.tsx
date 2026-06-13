@@ -30,12 +30,26 @@ const TYPE_LABELS: Record<string, string> = {
   Refund: 'Hoàn tiền',
 }
 
-const BANK = {
-  bankId: 'VCB',        // Vietcombank bank code for VietQR
-  accountNo: '1234567890',
-  accountName: 'DO THI ANH TUYET',
-  bankName: 'Vietcombank',
-  branch: 'Chi nhánh Mai Sơn Sơn La',
+// Map common Vietnamese bank names to VietQR bank IDs
+const BANK_QR_IDS: Record<string, string> = {
+  vietcombank: 'VCB', vcb: 'VCB',
+  mbbank: 'MB', mb: 'MB', 'mb bank': 'MB',
+  techcombank: 'TCB', tcb: 'TCB',
+  vietinbank: 'CTG', ctg: 'CTG',
+  bidv: 'BIDV',
+  agribank: 'AGR', agr: 'AGR',
+  tpbank: 'TPB', tpb: 'TPB',
+  vpbank: 'VPB', vpb: 'VPB',
+  acb: 'ACB',
+  sacombank: 'STB', stb: 'STB',
+}
+
+interface BankInfo {
+  bankName: string
+  bankBranch: string
+  accountNo: string
+  accountName: string
+  qrImageUrl: string
 }
 
 export default function WalletPage() {
@@ -49,12 +63,18 @@ export default function WalletPage() {
   const [submitting, setSubmitting] = useState(false)
   const [step, setStep] = useState<'select' | 'info'>('select')
   const [confirmedAmount, setConfirmedAmount] = useState(0)
+  const [bankInfo, setBankInfo] = useState<BankInfo>({ bankName: '', bankBranch: '', accountNo: '', accountName: '', qrImageUrl: '' })
 
   const quickAmounts = [50000, 100000, 200000, 500000, 1000000]
 
   const fetchWallet = async () => {
     try {
-      const { data } = await api.get('/wallet')
+      const [walletRes, bankRes] = await Promise.all([
+        api.get('/wallet'),
+        api.get('/settings/bank-info'),
+      ])
+      if (bankRes.data?.data) setBankInfo(bankRes.data.data)
+      const { data } = walletRes
       if (data.data) {
         setBalance(data.data.balance)
         setTotalTopUp(data.data.totalTopUp || 0)
@@ -89,8 +109,11 @@ export default function WalletPage() {
     }
   }
 
+  const bankQrId = BANK_QR_IDS[bankInfo.bankName.toLowerCase().trim()] ?? 'MB'
   const qrUrl = step === 'info'
-    ? `https://img.vietqr.io/image/${BANK.bankId}-${BANK.accountNo}-compact2.png?amount=${confirmedAmount}&addInfo=${encodeURIComponent(transferCode)}&accountName=${encodeURIComponent(BANK.accountName)}`
+    ? bankInfo.qrImageUrl
+      ? bankInfo.qrImageUrl.split('?')[0]  // use uploaded static QR if available
+      : `https://img.vietqr.io/image/${bankQrId}-${bankInfo.accountNo}-compact2.png?amount=${confirmedAmount}&addInfo=${encodeURIComponent(transferCode)}&accountName=${encodeURIComponent(bankInfo.accountName.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, ''))}`
     : ''
 
   if (loading) return <div className="container mx-auto px-4 py-12"><LoadingSpinner /></div>
@@ -187,13 +210,13 @@ export default function WalletPage() {
               {/* Bank info */}
               <div className="w-full bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100 text-sm">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><p className="text-gray-400 text-xs">Ngân hàng</p><p className="font-medium">{BANK.bankName}</p></div>
-                  <div><p className="text-gray-400 text-xs">Chi nhánh</p><p className="font-medium">{BANK.branch}</p></div>
+                  <div><p className="text-gray-400 text-xs">Ngân hàng</p><p className="font-medium">{bankInfo.bankName}</p></div>
+                  <div><p className="text-gray-400 text-xs">Chi nhánh</p><p className="font-medium">{bankInfo.bankBranch}</p></div>
                   <div>
                     <p className="text-gray-400 text-xs">Số tài khoản</p>
-                    <p className="font-mono font-bold text-primary-600 text-base">{BANK.accountNo}</p>
+                    <p className="font-mono font-bold text-primary-600 text-base">{bankInfo.accountNo}</p>
                   </div>
-                  <div><p className="text-gray-400 text-xs">Chủ tài khoản</p><p className="font-medium">Đỗ Thị Ánh Tuyết</p></div>
+                  <div><p className="text-gray-400 text-xs">Chủ tài khoản</p><p className="font-medium">{bankInfo.accountName}</p></div>
                 </div>
                 <div className="border-t border-gray-200 pt-3">
                   <p className="text-gray-400 text-xs mb-1">Số tiền</p>

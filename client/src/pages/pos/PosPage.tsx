@@ -37,6 +37,7 @@ export default function PosPage() {
 
   // --- Return tab state ---
   const [returnSearch, setReturnSearch] = useState('')
+  const [returnSearchType, setReturnSearchType] = useState<'code' | 'name' | 'sku'>('code')
   const [orders, setOrders] = useState<Order[]>([])
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [returnOrder, setReturnOrder] = useState<Order | null>(null)
@@ -200,10 +201,11 @@ export default function PosPage() {
 
   const filteredOrders = orders.filter(o => {
     if (!returnSearch.trim()) return true
-    const q = returnSearch.toLowerCase()
-    const matchCode = o.orderCode?.toLowerCase().includes(q)
-    const matchProduct = o.items?.some(i => i.productName?.toLowerCase().includes(q))
-    return matchCode || matchProduct
+    const q = returnSearch.toLowerCase().trim()
+    if (returnSearchType === 'code') return o.orderCode?.toLowerCase().includes(q)
+    if (returnSearchType === 'name') return o.items?.some(i => i.productName?.toLowerCase().includes(q))
+    if (returnSearchType === 'sku') return o.items?.some(i => i.sku?.toLowerCase().includes(q))
+    return true
   })
 
   const getStatusLabel = (status: number) => {
@@ -522,13 +524,26 @@ export default function PosPage() {
               </div>
               <button onClick={() => setShowReturnModal(false)} className="p-1 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
             </div>
-            <div className="p-4 border-b border-gray-100">
+            <div className="p-4 border-b border-gray-100 space-y-3">
+              <div className="flex gap-1">
+                {([
+                  { key: 'code', label: 'Mã đơn hàng' },
+                  { key: 'name', label: 'Tên sản phẩm' },
+                  { key: 'sku',  label: 'Mã vạch / SKU' },
+                ] as const).map(t => (
+                  <button key={t.key} type="button"
+                    onClick={() => { setReturnSearchType(t.key); setReturnSearch('') }}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors ${returnSearchType === t.key ? 'bg-orange-500 text-white border-orange-500' : 'border-gray-200 text-gray-600 hover:border-orange-300'}`}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   value={returnSearch}
                   onChange={e => setReturnSearch(e.target.value)}
-                  placeholder="Tìm theo mã đơn hoặc tên sản phẩm..."
+                  placeholder={returnSearchType === 'code' ? 'Nhập mã đơn hàng...' : returnSearchType === 'name' ? 'Nhập tên sản phẩm...' : 'Nhập mã vạch / SKU...'}
                   className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-300"
                 />
               </div>

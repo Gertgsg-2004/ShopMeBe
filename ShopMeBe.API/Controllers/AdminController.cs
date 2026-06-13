@@ -343,6 +343,17 @@ public class AdminController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(ApiResponseDto<object>.Ok(new { }, "Đã xóa yêu cầu"));
     }
+
+    // ── Pending counts for sidebar badges ─────────────────────────────────────
+
+    [HttpGet("pending-counts")]
+    public async Task<IActionResult> GetPendingCounts()
+    {
+        var pendingOrders = await _context.Orders.CountAsync(o => o.Status == ShopMeBe.Core.Enums.OrderStatus.Pending);
+        var pendingTopUps = await _context.WalletTopUps.CountAsync(t => !t.IsCompleted);
+        var pendingResets = await _context.PasswordResetRequests.CountAsync(r => r.Status == "Pending");
+        return Ok(ApiResponseDto<object>.Ok(new { pendingOrders, pendingTopUps, pendingResets }));
+    }
 }
 
 public class ResetPasswordDto { public string NewPassword { get; set; } = string.Empty; }

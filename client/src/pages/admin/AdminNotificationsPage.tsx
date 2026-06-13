@@ -14,7 +14,6 @@ interface Notification {
   createdAt: string
   isActive: boolean
   readCount: number
-  isRead: boolean
 }
 
 const TYPE_OPTIONS = [
@@ -27,21 +26,12 @@ const TYPE_BADGE: Record<string, string> = {
   System: 'bg-blue-100 text-blue-600',
   Group: 'bg-purple-100 text-purple-600',
   Personal: 'bg-amber-100 text-amber-600',
-  AdminAlert: 'bg-red-100 text-red-600',
 }
 
 const TYPE_LABEL: Record<string, string> = {
   System: 'Toàn hệ thống',
   Group: 'Nhóm',
   Personal: 'Cá nhân',
-  AdminAlert: '⚡ Yêu cầu khách',
-}
-
-const TYPE_ICON: Record<string, string> = {
-  AdminAlert: '🔔',
-  System: '📢',
-  Group: '👥',
-  Personal: '👤',
 }
 
 export default function AdminNotificationsPage() {
@@ -56,8 +46,6 @@ export default function AdminNotificationsPage() {
     try {
       const { data } = await api.get('/notifications/admin')
       if (data.data) setNotifications(data.data)
-      // Mark all as read when admin opens the page
-      await api.put('/notifications/read-all').catch(() => {})
     } finally { setLoading(false) }
   }
 
@@ -115,19 +103,18 @@ export default function AdminNotificationsPage() {
             </div>
           )}
           {notifications.map(n => (
-            <div key={n.id} className={`card transition-opacity ${!n.isActive ? 'opacity-50' : ''} ${n.type === 'AdminAlert' && !n.isRead ? 'border-l-4 border-l-red-400' : ''}`}>
+            <div key={n.id} className={`card transition-opacity ${!n.isActive ? 'opacity-50' : ''}`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-lg ${n.type === 'AdminAlert' ? 'bg-red-50' : 'bg-primary-50'}`}>
-                    {TYPE_ICON[n.type] ?? '📌'}
+                  <div className="w-9 h-9 bg-primary-50 rounded-xl flex items-center justify-center shrink-0">
+                    <Bell size={16} className="text-primary-500" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className={`font-semibold ${n.type === 'AdminAlert' && !n.isRead ? 'text-red-700' : 'text-gray-800'}`}>{n.title}</p>
+                      <p className="font-semibold text-gray-800">{n.title}</p>
                       <span className={`badge text-xs ${TYPE_BADGE[n.type] || 'bg-gray-100 text-gray-600'}`}>
                         {TYPE_LABEL[n.type] || n.type}
                       </span>
-                      {n.type === 'AdminAlert' && !n.isRead && <span className="badge bg-red-500 text-white text-xs">Mới</span>}
                       {!n.isActive && <span className="badge bg-gray-100 text-gray-400 text-xs">Đã xóa</span>}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{n.content}</p>

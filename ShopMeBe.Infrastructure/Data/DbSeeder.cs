@@ -9,30 +9,30 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
-        // Step 1: Ensure database exists (connect to master, create if missing)
+        // Check if database exists via master; if not, let EnsureCreatedAsync create it fresh.
+        // If it already exists, skip EnsureCreatedAsync entirely (it would throw "already exists").
         var connStr = context.Database.GetConnectionString()!;
         var masterConnStr = System.Text.RegularExpressions.Regex.Replace(
             connStr, @"Database=[^;]+", "Database=master", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        bool dbAlreadyExists;
         await using (var masterConn = new SqlConnection(masterConnStr))
         {
             await masterConn.OpenAsync();
             await using var checkCmd = masterConn.CreateCommand();
             checkCmd.CommandText = "SELECT COUNT(*) FROM sys.databases WHERE name = 'ShopMeBeDb_Dev'";
-            var exists = (int)(await checkCmd.ExecuteScalarAsync())! > 0;
-            if (!exists)
-            {
-                await using var createCmd = masterConn.CreateCommand();
-                createCmd.CommandText = "CREATE DATABASE [ShopMeBeDb_Dev]";
-                await createCmd.ExecuteNonQueryAsync();
-            }
+            dbAlreadyExists = (int)(await checkCmd.ExecuteScalarAsync())! > 0;
         }
 
-        // Step 2: Create all tables if this is a fresh database
-        await context.Database.EnsureCreatedAsync();
-
-        // Step 3: Add CostPrice column if missing (schema update for existing DBs)
-        await using (var conn = new SqlConnection(connStr))
+        if (!dbAlreadyExists)
         {
+            // Fresh install: EnsureCreated will CREATE DATABASE + all tables
+            await context.Database.EnsureCreatedAsync();
+        }
+        else
+        {
+            // DB exists — only add missing columns via raw ADO.NET, never call EnsureCreatedAsync
+            await using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = @"

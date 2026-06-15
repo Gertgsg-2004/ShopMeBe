@@ -8,7 +8,17 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
-        await context.Database.MigrateAsync();
+        // Project uses no EF migrations — EnsureCreated handles schema on first run.
+        // MigrateAsync causes "Database already exists" when DB exists with no migration history.
+        await context.Database.EnsureCreatedAsync();
+
+        // Manual column additions for schema updates applied after initial DB creation
+        await context.Database.ExecuteSqlRawAsync(@"
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'CostPrice')
+            BEGIN
+                ALTER TABLE Products ADD CostPrice decimal(18,2) NOT NULL DEFAULT 0
+            END
+        ");
 
         // Seed roles
         string[] roles = { "Admin", "Customer" };

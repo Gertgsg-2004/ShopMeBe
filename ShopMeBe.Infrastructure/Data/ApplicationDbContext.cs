@@ -55,6 +55,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(x => x.Slug).IsUnique();
             e.Property(x => x.Price).HasColumnType("decimal(18,2)");
             e.Property(x => x.SalePrice).HasColumnType("decimal(18,2)");
+            e.Property(x => x.CostPrice).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
             e.HasOne(x => x.Category).WithMany(x => x.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
         });
 

@@ -8,13 +8,8 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
-        // Project uses no EF migrations — EnsureCreated handles schema on first run.
-        // Only create the schema if we cannot connect yet; otherwise EnsureCreated/Migrate
-        // would try to re-run "CREATE DATABASE" and fail with "Database already exists".
-        if (!await context.Database.CanConnectAsync())
-        {
-            await context.Database.EnsureCreatedAsync();
-        }
+        // DB already exists — skip EnsureCreated/MigrateAsync (both throw "already exists").
+        // Schema columns added manually below via raw SQL with IF NOT EXISTS guards.
 
         // Manual column additions for schema updates applied after initial DB creation
         await context.Database.ExecuteSqlRawAsync(@"

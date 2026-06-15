@@ -9,9 +9,28 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
-        // Use raw ADO.NET to avoid EF Core connection manager triggering CREATE DATABASE
-        // on LocalDB when __EFMigrationsHistory table is absent.
+        // Step 1: Ensure database exists (connect to master, create if missing)
         var connStr = context.Database.GetConnectionString()!;
+        var masterConnStr = System.Text.RegularExpressions.Regex.Replace(
+            connStr, @"Database=[^;]+", "Database=master", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        await using (var masterConn = new SqlConnection(masterConnStr))
+        {
+            await masterConn.OpenAsync();
+            await using var checkCmd = masterConn.CreateCommand();
+            checkCmd.CommandText = "SELECT COUNT(*) FROM sys.databases WHERE name = 'ShopMeBeDb_Dev'";
+            var exists = (int)(await checkCmd.ExecuteScalarAsync())! > 0;
+            if (!exists)
+            {
+                await using var createCmd = masterConn.CreateCommand();
+                createCmd.CommandText = "CREATE DATABASE [ShopMeBeDb_Dev]";
+                await createCmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        // Step 2: Create all tables if this is a fresh database
+        await context.Database.EnsureCreatedAsync();
+
+        // Step 3: Add CostPrice column if missing (schema update for existing DBs)
         await using (var conn = new SqlConnection(connStr))
         {
             await conn.OpenAsync();

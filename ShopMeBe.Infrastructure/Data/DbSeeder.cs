@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using ShopMeBe.Core.Entities;
 
@@ -8,16 +9,20 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
-        // DB already exists — skip EnsureCreated/MigrateAsync (both throw "already exists").
-        // Schema columns added manually below via raw SQL with IF NOT EXISTS guards.
-
-        // Manual column additions for schema updates applied after initial DB creation
-        await context.Database.ExecuteSqlRawAsync(@"
-            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'CostPrice')
-            BEGIN
-                ALTER TABLE Products ADD CostPrice decimal(18,2) NOT NULL DEFAULT 0
-            END
-        ");
+        // Use raw ADO.NET to avoid EF Core connection manager triggering CREATE DATABASE
+        // on LocalDB when __EFMigrationsHistory table is absent.
+        var connStr = context.Database.GetConnectionString()!;
+        await using (var conn = new SqlConnection(connStr))
+        {
+            await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'CostPrice')
+                BEGIN
+                    ALTER TABLE Products ADD CostPrice decimal(18,2) NOT NULL DEFAULT 0
+                END";
+            await cmd.ExecuteNonQueryAsync();
+        }
 
         // Seed roles
         string[] roles = { "Admin", "Customer" };

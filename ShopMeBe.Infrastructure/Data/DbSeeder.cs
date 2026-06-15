@@ -9,30 +9,44 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
-        // Check if database exists via master; if not, let EnsureCreatedAsync create it fresh.
-        // If it already exists, skip EnsureCreatedAsync entirely (it would throw "already exists").
         var connStr = context.Database.GetConnectionString()!;
         var masterConnStr = System.Text.RegularExpressions.Regex.Replace(
             connStr, @"Database=[^;]+", "Database=master", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-        bool dbAlreadyExists;
         await using (var masterConn = new SqlConnection(masterConnStr))
         {
             await masterConn.OpenAsync();
+
+            // Check if DB exists
             await using var checkCmd = masterConn.CreateCommand();
             checkCmd.CommandText = "SELECT COUNT(*) FROM sys.databases WHERE name = 'ShopMeBeDb_Dev'";
-            dbAlreadyExists = (int)(await checkCmd.ExecuteScalarAsync())! > 0;
+            var dbExists = (int)(await checkCmd.ExecuteScalarAsync())! > 0;
+
+            if (!dbExists)
+            {
+                // Create fresh database
+                await using var createCmd = masterConn.CreateCommand();
+                createCmd.CommandText = "CREATE DATABASE [ShopMeBeDb_Dev]";
+                await createCmd.ExecuteNonQueryAsync();
+            }
+            else
+            {
+                // DB exists but current login may lack access — fix ownership from master
+                await using var fixCmd = masterConn.CreateCommand();
+                fixCmd.CommandText = @"
+                    DECLARE @login NVARCHAR(256) = SUSER_SNAME();
+                    DECLARE @sql NVARCHAR(500) = 'ALTER AUTHORIZATION ON DATABASE::[ShopMeBeDb_Dev] TO [' + @login + ']';
+                    EXEC(@sql);";
+                await fixCmd.ExecuteNonQueryAsync();
+            }
         }
 
-        if (!dbAlreadyExists)
+        // Now create schema (EnsureCreated only creates tables if they don't exist)
+        await context.Database.EnsureCreatedAsync();
+
+        // Add CostPrice column if missing on existing databases
+        await using (var conn = new SqlConnection(connStr))
         {
-            // Fresh install: EnsureCreated will CREATE DATABASE + all tables
-            await context.Database.EnsureCreatedAsync();
-        }
-        else
-        {
-            // DB exists — only add missing columns via raw ADO.NET, never call EnsureCreatedAsync
-            await using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
